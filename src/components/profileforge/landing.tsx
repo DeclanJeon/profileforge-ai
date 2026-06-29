@@ -127,7 +127,7 @@ export function Landing() {
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold">다양한 컨셉 미리보기</h2>
           <p className="text-muted-foreground text-sm mt-2">
-            9개 카테고리 · 50개 핵심 컨셉 · 300개 프롬프트 시드 라이브러리
+            9개 카테고리 · 62개 핵심 컨셉 · 확장 프롬프트 라이브러리
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">

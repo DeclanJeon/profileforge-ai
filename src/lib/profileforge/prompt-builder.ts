@@ -26,7 +26,7 @@ export interface CustomizeOptions {
 }
 
 export const DEFAULT_NEGATIVE_PROMPT =
-  'changed identity, different person, copied source pose, copied hand-under-chin pose, distorted face, over-smoothed skin, asymmetrical eyes, crossed eyes, duplicate face, extra limbs, blurry, low resolution, watermark, text, logo, bad anatomy, awkward crop, cropped forehead, cropped chin, extra fingers, deformed hands, malformed spellcasting hands, fused fingers, broken wrists, mismatched earrings, cartoonish skin, plastic skin, uncanny valley'
+  'changed identity, different person, copied source pose, copied hand-under-chin pose, distorted face, over-smoothed skin, asymmetrical eyes, crossed eyes, duplicate face, extra limbs, blurry, low resolution, watermark, text, logo, bad anatomy, awkward crop, cropped forehead, cropped chin, extra fingers, deformed hands, malformed spellcasting hands, fused fingers, broken wrists, mismatched earrings, cartoonish skin, plastic skin, uncanny valley, copyrighted character, franchise logo, exact costume replica, recognizable mascot creature, school crest, team logo, club logo, national team logo, celebrity likeness, trademark symbol'
 
 const ID_LOCK_LEVELS: Record<string, string> = {
   low: 'Use the uploaded image as a loose identity reference while allowing creative transformation.',
@@ -218,6 +218,31 @@ const CONCEPT_DETAIL_PROMPTS: Record<string, string> = {
     'Concept-specific direction: minimal line-art avatar, simplified recognizable facial outline, glasses and hairstyle cues preserved, elegant sparse composition, clean negative space, profile icon readability, monochrome or limited palette.',
   'art-pop-art':
     'Concept-specific direction: bold pop-art avatar, vivid color blocks, comic-inspired halftone texture, confident expression, graphic close-up crop, clean silhouette, energetic creator profile style while preserving recognizable identity cues.',
+
+  'anime-monster-partner-adventurer':
+    'Concept-specific direction: original late-90s monster-partner adventure anime inspired profile, not based on any existing character. Adventure goggles-inspired headwear without copying franchise designs, layered camp jacket, fingerless travel gloves, compact backpack, bright summer adventure field, small original companion-creature silhouette blurred in background that does not resemble any known mascot, energetic three-quarter or full-body expedition pose, warm daylight and abstract digital sparkle atmosphere. No franchise logo, no exact character outfit, no recognizable creature.',
+  'anime-stadium-trainer':
+    'Concept-specific direction: original creature-trainer adventure protagonist concept, full-body confident stadium pose, sporty travel jacket, simple cap-like silhouette without copying famous hats, backpack strap, clean sneakers, bright outdoor arena or route-stadium background, dramatic sunlight, energetic champion mood. No franchise logo, no mascot creature, no exact costume.',
+  'fantasy-wizard-school':
+    'Concept-specific direction: original wizard-school student portrait, tailored robe-like academic coat, layered neutral scarf, wand-like prop held naturally, candlelit stone library or grand study hall, floating dust motes, warm magical rim light, curious intelligent expression, three-quarter angle. No house crest, no lightning scar, no exact school uniform, no franchise symbols.',
+  'fantasy-arcane-professor':
+    'Concept-specific direction: original adult magic academy professor portrait, long tailored coat, refined academic layers, ancient library with floating books and arcane diagrams, warm candlelight mixed with cool moonlight, thoughtful mentor expression, three-quarter seated or standing pose, cinematic depth of field.',
+  'wedding-full-shot-classic':
+    'Concept-specific direction: elegant full-body wedding portrait concept, formal wedding attire suited to the subject, refined suit or wedding dress styling, floral arch and soft daylight venue, graceful standing pose, hands naturally placed, romantic dignified expression, full-body 4:5 composition, premium wedding photography.',
+  'wedding-night-garden-full-shot':
+    'Concept-specific direction: cinematic night garden wedding full-body portrait, formal evening wedding attire, elegant standing pose under warm garden lights, bokeh lanterns, floral path, dark emerald and gold color palette, soft rim light, romantic confident expression, full-body framing with balanced headroom and visible outfit silhouette.',
+  'sports-football-player-full-shot':
+    'Concept-specific direction: original football athlete full-body profile portrait, generic football kit with no club or national team logo, athletic stance on a stadium pitch or tunnel entrance, ball prop near foot, dramatic stadium lights, confident focused expression, full-body sports poster framing, realistic fabric texture, no brand marks, no team emblem.',
+  'sports-football-captain-poster':
+    'Concept-specific direction: original football captain poster concept, generic captain-style sports uniform, no club logos, armband without text, heroic full-body stance, stadium floodlights, misty tunnel background, cinematic rim lighting, strong leadership expression, sports magazine poster composition.',
+  'idol-stage-full-shot':
+    'Concept-specific direction: original K-pop inspired idol stage full-body portrait, modern performance outfit, LED stage background, dance-ready pose, confident charismatic expression, colorful concert lighting, full-body composition with visible silhouette and stage floor reflections, polished entertainment profile image. No real group logo, no exact idol outfit, no text.',
+  'idol-album-jacket':
+    'Concept-specific direction: original idol album-jacket editorial portrait, fashion-forward styling, glossy studio set, soft neon or pastel backdrop, controlled beauty lighting, confident gaze, half-body or three-quarter body framing, premium album-cover mood without any text or label logo, modern entertainment photography.',
+  'model-runway-full-shot':
+    'Concept-specific direction: high-fashion runway model full-body portrait, original designer-inspired black or neutral statement outfit, catwalk pose, long clean silhouette, runway lights, low-angle fashion camera, dramatic shadows, full-body framing, luxury editorial lookbook quality. No brand logo, no text, no copied designer trademark.',
+  'model-lookbook-editorial':
+    'Concept-specific direction: premium fashion lookbook editorial portrait, clean studio or architectural backdrop, curated layered outfit, full-body or three-quarter pose, off-center composition, calm model expression, high-end catalog lighting, strong clothing silhouette, modern magazine styling, no logos or text.',
 }
 
 const MODEL_CONCEPT_NAMES: Record<string, string> = {
@@ -258,14 +283,22 @@ export const buildPrompts = (
     ? 'Include a small, subtle, natural-looking "AI" label or watermark only if it does not distract from the portrait. '
     : ''
 
-  const composition = COMPOSITION_BY_CATEGORY[concept.category]
+  const composition = concept.composition === 'full-body'
+    ? `${COMPOSITION_BY_CATEGORY[concept.category]} Required framing: full-body portrait, visible complete outfit silhouette, head-to-toe pose, balanced headroom and foot room.`
+    : concept.composition === 'three-quarter'
+      ? `${COMPOSITION_BY_CATEGORY[concept.category]} Required framing: three-quarter body portrait with visible outfit silhouette and dynamic pose.`
+      : COMPOSITION_BY_CATEGORY[concept.category]
   const useCase = USE_CASE_BY_CATEGORY[concept.category]
   const modelConceptName = MODEL_CONCEPT_NAMES[concept.id] || concept.name
+  const ipSafety = concept.inspirationPolicy === 'inspired-original'
+    ? 'Inspired-original safety: do not reproduce copyrighted characters, franchise logos, exact costumes, recognizable mascots, school crests, or trademarked symbols; create a legally distinct original concept with a similar broad adventure mood.'
+    : ''
   const positive = [
     idStylePrefix,
     `${idLock} ${creativity}`,
     DIVERSITY_INSTRUCTION,
     CONCEPT_DETAIL_PROMPTS[concept.id],
+    ipSafety,
     `Create a ${useCase} image in the concept style: "${modelConceptName}".`,
     `Wardrobe or costume: ${outfit}.`,
     `Setting or background: ${background}.`,

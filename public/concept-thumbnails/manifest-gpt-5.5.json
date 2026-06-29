@@ -1,6 +1,6 @@
 {
   "model": "gpt-5.5",
-  "generatedAt": "2026-06-29T14:03:06.671Z",
+  "generatedAt": "2026-06-29T16:02:17.022Z",
   "entries": [
     {
       "conceptId": "pro-corporate-navy",
@@ -342,6 +342,138 @@
       "model": "gpt-5.5",
       "startedAt": "2026-06-29T14:01:37.442Z",
       "completedAt": "2026-06-29T14:03:06.671Z"
+    },
+    {
+      "conceptId": "anime-monster-partner-adventurer",
+      "name": "Monster Partner Adventurer",
+      "category": "Cosplay",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/anime-monster-partner-adventurer.png",
+      "fileUrl": "/concept-thumbnails/anime-monster-partner-adventurer.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:33:43.288Z",
+      "completedAt": "2026-06-29T15:35:14.773Z"
+    },
+    {
+      "conceptId": "anime-stadium-trainer",
+      "name": "Creature Trainer Stadium",
+      "category": "Cosplay",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/anime-stadium-trainer.png",
+      "fileUrl": "/concept-thumbnails/anime-stadium-trainer.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:35:25.378Z",
+      "completedAt": "2026-06-29T15:37:05.576Z"
+    },
+    {
+      "conceptId": "fantasy-wizard-school",
+      "name": "Wizard School Student",
+      "category": "Fantasy",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/fantasy-wizard-school.png",
+      "fileUrl": "/concept-thumbnails/fantasy-wizard-school.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:37:09.370Z",
+      "completedAt": "2026-06-29T15:40:39.907Z"
+    },
+    {
+      "conceptId": "fantasy-arcane-professor",
+      "name": "Arcane Professor",
+      "category": "Fantasy",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/fantasy-arcane-professor.png",
+      "fileUrl": "/concept-thumbnails/fantasy-arcane-professor.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:40:44.151Z",
+      "completedAt": "2026-06-29T15:44:22.409Z"
+    },
+    {
+      "conceptId": "wedding-full-shot-classic",
+      "name": "Classic Wedding Full Shot",
+      "category": "Editorial",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/wedding-full-shot-classic.png",
+      "fileUrl": "/concept-thumbnails/wedding-full-shot-classic.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:44:26.088Z",
+      "completedAt": "2026-06-29T15:48:10.963Z"
+    },
+    {
+      "conceptId": "wedding-night-garden-full-shot",
+      "name": "Night Garden Wedding Full Shot",
+      "category": "Editorial",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/wedding-night-garden-full-shot.png",
+      "fileUrl": "/concept-thumbnails/wedding-night-garden-full-shot.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:48:14.547Z",
+      "completedAt": "2026-06-29T15:51:20.777Z"
+    },
+    {
+      "conceptId": "sports-football-player-full-shot",
+      "name": "Football Player Full Shot",
+      "category": "Creator",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/sports-football-player-full-shot.png",
+      "fileUrl": "/concept-thumbnails/sports-football-player-full-shot.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:51:25.192Z",
+      "completedAt": "2026-06-29T15:53:00.163Z"
+    },
+    {
+      "conceptId": "sports-football-captain-poster",
+      "name": "Football Captain Poster",
+      "category": "Creator",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/sports-football-captain-poster.png",
+      "fileUrl": "/concept-thumbnails/sports-football-captain-poster.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:53:04.566Z",
+      "completedAt": "2026-06-29T15:55:49.575Z"
+    },
+    {
+      "conceptId": "idol-stage-full-shot",
+      "name": "Idol Stage Full Shot",
+      "category": "Creator",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/idol-stage-full-shot.png",
+      "fileUrl": "/concept-thumbnails/idol-stage-full-shot.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:55:53.127Z",
+      "completedAt": "2026-06-29T15:57:25.382Z"
+    },
+    {
+      "conceptId": "idol-album-jacket",
+      "name": "Idol Album Jacket",
+      "category": "Editorial",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/idol-album-jacket.png",
+      "fileUrl": "/concept-thumbnails/idol-album-jacket.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:57:29.174Z",
+      "completedAt": "2026-06-29T15:59:05.020Z"
+    },
+    {
+      "conceptId": "model-runway-full-shot",
+      "name": "Runway Model Full Shot",
+      "category": "Editorial",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/model-runway-full-shot.png",
+      "fileUrl": "/concept-thumbnails/model-runway-full-shot.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T15:59:09.430Z",
+      "completedAt": "2026-06-29T16:00:42.608Z"
+    },
+    {
+      "conceptId": "model-lookbook-editorial",
+      "name": "Lookbook Editorial Model",
+      "category": "Editorial",
+      "outputPath": "/home/declan/Documents/Develop/Project/generate_profile/v1/public/concept-thumbnails/model-lookbook-editorial.png",
+      "fileUrl": "/concept-thumbnails/model-lookbook-editorial.png",
+      "status": "ok",
+      "model": "gpt-5.5",
+      "startedAt": "2026-06-29T16:00:46.882Z",
+      "completedAt": "2026-06-29T16:02:17.022Z"
     }
   ]
 }

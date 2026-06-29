@@ -277,7 +277,7 @@ export async function POST(req: NextRequest) {
         negativePrompt,
         aspectRatio: body.aspectRatio,
         status: 'running',
-        provider: 'codex-imagen-ssh',
+        provider: 'image-adapter',
         costCredits: 0,
       },
     })

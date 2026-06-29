@@ -3,9 +3,9 @@ import { spawn } from 'child_process'
 import { promises as fs } from 'fs'
 import path from 'path'
 
-const DEFAULT_CODEX_IMAGEN_HOST = 'ponslink'
-const DEFAULT_CODEX_IMAGEN_BIN = '$HOME/bin/codex-imagen'
-const DEFAULT_CODEX_IMAGEN_MODEL = 'gpt-5.5'
+const DEFAULT_IMAGE_PROVIDER_HOST = 'ponslink'
+const DEFAULT_IMAGE_PROVIDER_BIN = '$HOME/bin/codex-imagen'
+const DEFAULT_IMAGE_PROVIDER_MODEL = 'gpt-5.5'
 const DEFAULT_TIMEOUT_SECONDS = 900
 
 export interface ImageGenerationInput {
@@ -233,11 +233,13 @@ async function runCodexImagen(opts: {
 export async function generateProfileImage(
   input: ImageGenerationInput,
 ): Promise<ImageGenerationOutput> {
-  const host = process.env.PROFILEFORGE_CODEX_IMAGEN_HOST || DEFAULT_CODEX_IMAGEN_HOST
-  const bin = process.env.PROFILEFORGE_CODEX_IMAGEN_BIN || DEFAULT_CODEX_IMAGEN_BIN
-  const model = DEFAULT_CODEX_IMAGEN_MODEL
+  const host = process.env.PROFILEFORGE_IMAGE_PROVIDER_HOST || process.env.PROFILEFORGE_CODEX_IMAGEN_HOST || DEFAULT_IMAGE_PROVIDER_HOST
+  const bin = process.env.PROFILEFORGE_IMAGE_PROVIDER_BIN || process.env.PROFILEFORGE_CODEX_IMAGEN_BIN || DEFAULT_IMAGE_PROVIDER_BIN
+  const model = DEFAULT_IMAGE_PROVIDER_MODEL
   const timeoutSeconds = Number(
-    process.env.PROFILEFORGE_CODEX_IMAGEN_TIMEOUT_SECONDS || DEFAULT_TIMEOUT_SECONDS,
+    process.env.PROFILEFORGE_IMAGE_PROVIDER_TIMEOUT_SECONDS
+      || process.env.PROFILEFORGE_CODEX_IMAGEN_TIMEOUT_SECONDS
+      || DEFAULT_TIMEOUT_SECONDS,
   )
   const timeoutMs = Math.max(30, timeoutSeconds) * 1000
 

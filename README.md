@@ -19,9 +19,9 @@
 
 ## Overview
 
-ProfileForge AI transforms a user's source portrait into polished profile images across curated concepts. The app emphasizes identity preservation, concept variety, safe temporary storage, and a production-friendly generation pipeline backed by a Codex Imagen skill.
+ProfileForge AI transforms a user's source portrait into polished profile images across curated concepts. The app emphasizes identity preservation, concept variety, safe temporary storage, and a production-friendly generation pipeline backed by an external image-generation adapter.
 
-The current product ships with **50 prompt-designed concepts** across:
+The current product ships with **62 prompt-designed concepts** across:
 
 | Category | Examples |
 | --- | --- |
@@ -62,7 +62,7 @@ flowchart LR
   A[User uploads portrait] --> B[Upload API]
   B --> C[(SQLite via Prisma)]
   C --> D[Generate API creates async job]
-  D --> E[Codex Imagen skill over SSH]
+  D --> E[Image generation adapter]
   E --> F[/tmp/profileforge-generated]
   F --> G[No-store image API]
   G --> H[Browser preview and download]
@@ -76,7 +76,7 @@ flowchart LR
 - **Styling/UI**: Tailwind CSS 4, shadcn-style Radix primitives, lucide-react
 - **Data**: Prisma + SQLite
 - **Runtime**: Bun for local development/build, Node-compatible standalone production server
-- **Image generation**: Codex Imagen skill, pinned operationally to `gpt-5.5`
+- **Image generation**: external adapter, pinned operationally to the production image model
 - **Deployment target**: `ponslink` systemd service behind `https://profileforge.ponslink.com`
 
 ## Getting started
@@ -86,7 +86,7 @@ flowchart LR
 - Bun 1.3+
 - Node-compatible environment for Next.js standalone output
 - SQLite
-- A reachable Codex Imagen skill host if running real generation
+- A reachable image-generation adapter host if running real generation
 
 ### Install
 
@@ -118,9 +118,9 @@ The build script copies static assets, public assets, and cleanup scripts into `
 | Variable | Purpose | Default / example |
 | --- | --- | --- |
 | `DATABASE_URL` | Prisma SQLite connection | `file:./db/custom.db` |
-| `PROFILEFORGE_CODEX_IMAGEN_HOST` | SSH host for Codex Imagen | `ponslink` |
-| `PROFILEFORGE_CODEX_IMAGEN_BIN` | Codex Imagen executable path | `$HOME/bin/codex-imagen` |
-| `PROFILEFORGE_CODEX_IMAGEN_TIMEOUT_SECONDS` | Generation timeout | `900` |
+| `PROFILEFORGE_IMAGE_PROVIDER_HOST` | SSH host for the image-generation adapter | `ponslink` |
+| `PROFILEFORGE_IMAGE_PROVIDER_BIN` | Image-generation adapter executable path | `$HOME/bin/image-adapter` |
+| `PROFILEFORGE_IMAGE_PROVIDER_TIMEOUT_SECONDS` | Generation timeout | `900` |
 | `PROFILEFORGE_GENERATED_IMAGE_DIR` | Ephemeral result directory | `/tmp/profileforge-generated` |
 | `PROFILEFORGE_GENERATED_IMAGE_TTL_SECONDS` | Generated result TTL | `600` |
 | `PROFILEFORGE_UPLOAD_TTL_SECONDS` | Source upload TTL | `1800` |
@@ -155,4 +155,4 @@ Runtime files are intentionally ignored:
 
 ## Project status
 
-ProfileForge AI is deployed and operational on `https://profileforge.ponslink.com`. The generation path uses Codex Imagen with `gpt-5.5`, async job polling, curated thumbnails, and short-lived generated-image retention.
+ProfileForge AI is deployed and operational on `https://profileforge.ponslink.com`. The generation path uses the production image adapter, async job polling, curated thumbnails, and short-lived generated-image retention.

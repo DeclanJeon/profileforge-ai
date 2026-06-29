@@ -2,7 +2,7 @@
 
 import { useProfileStore } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Shield, Coins, RotateCcw } from 'lucide-react'
+import { Shield, Coins, RotateCcw } from 'lucide-react'
 
 export function Header() {
   const { credits, setStep, resetAll, setPolicyOpen } = useProfileStore()
@@ -18,9 +18,7 @@ export function Header() {
           }}
           className="flex items-center gap-2 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-rose-500 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
+          <img src="/logo.svg" alt="ProfileForge AI" className="w-8 h-8 rounded-lg shadow-sm group-hover:shadow-md transition-shadow" />
           <div className="flex flex-col leading-tight text-left">
             <span className="font-bold text-sm">ProfileForge AI</span>
             <span className="text-[10px] text-muted-foreground hidden sm:inline">

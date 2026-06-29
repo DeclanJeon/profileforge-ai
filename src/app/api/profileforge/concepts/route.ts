@@ -1,6 +1,6 @@
 /**
  * 컨셉 목록 API
- * 50개 핵심 컨셉 반환
+ * 현재 활성 컨셉 목록 반환
  */
 import { NextResponse } from 'next/server'
 import { CONCEPTS } from '@/lib/profileforge/concepts'

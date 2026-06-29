@@ -18,7 +18,7 @@ import {
   Info,
 } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
-import { CATEGORY_LABELS } from '@/lib/profileforge/concepts'
+import { CATEGORY_LABELS, type Concept } from '@/lib/profileforge/concepts'
 import { buildPrompts } from '@/lib/profileforge/prompt-builder'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -26,10 +26,10 @@ import { cn } from '@/lib/utils'
 type Stage = 'preparing' | 'building' | 'generating' | 'scoring' | 'done' | 'failed'
 
 const STAGES: { id: Stage; label: string; durationMs: number }[] = [
-  { id: 'preparing', label: '원본 분석 및 얼굴 임베딩 준비', durationMs: 800 },
-  { id: 'building', label: 'identity-lock 프롬프트 구성', durationMs: 600 },
-  { id: 'generating', label: 'Codex Imagen 스킬로 이미지 생성', durationMs: 4500 },
-  { id: 'scoring', label: '얼굴 유사도·품질·컨셉 적합도 평가', durationMs: 700 },
+  { id: 'preparing', label: '원본 분석 및 얼굴 특징 확인', durationMs: 800 },
+  { id: 'building', label: '컨셉 프롬프트 구성', durationMs: 600 },
+  { id: 'generating', label: '고해상도 프로필 이미지 생성', durationMs: 4500 },
+  { id: 'scoring', label: '품질 확인 및 결과 정리', durationMs: 700 },
 ]
 
 export function GenerateStep() {
@@ -53,6 +53,8 @@ export function GenerateStep() {
 
   const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
   const built = selectedConcept ? buildPrompts(selectedConcept, customize) : null
+  const estimatedTime = selectedConcept ? estimateGenerationTime(selectedConcept, customize.resultCount) : null
+  const remainingLabel = estimatedTime ? formatRemainingEstimate(estimatedTime.maxSeconds, elapsedSec) : null
 
   useEffect(() => {
     if (startedRef.current) return
@@ -220,10 +222,20 @@ export function GenerateStep() {
                 <Clock className="w-3 h-3" />
                 {elapsedSec}초 경과
               </span>
-              <span>예상 1~4분</span>
+              <span>{estimatedTime ? `예상 ${estimatedTime.label}` : '예상 계산 중'}</span>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {stage !== 'failed' && stage !== 'done' && estimatedTime && (
+        <Alert className="border-fuchsia-200 bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
+          <Clock className="w-4 h-4 text-fuchsia-600" />
+          <AlertTitle className="text-sm">예상 대기시간: 약 {estimatedTime.label}</AlertTitle>
+          <AlertDescription className="text-xs">
+            {remainingLabel}. 전신·판타지·코스프레처럼 복잡한 컨셉은 조금 더 걸릴 수 있습니다.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Stage list */}
@@ -350,4 +362,30 @@ function translateError(msg: string): string {
   if (m.includes('credit') || m.includes('크레딧') || m.includes('limit')) return '크레딧이 부족합니다.'
   if (m.includes('server') || m.includes('network') || m.includes('서버')) return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
   return msg || '이미지 생성에 실패했습니다. 다시 시도해주세요.'
+}
+
+function estimateGenerationTime(concept: Concept, resultCount: number) {
+  const complexity = concept.estimatedComplexity || (['Cosplay', 'Fantasy', 'Sci-Fi'].includes(concept.category) ? 'complex' : 'standard')
+  const composition = concept.composition || 'half-body'
+  const complexityMultiplier = complexity === 'very-complex' ? 1.45 : complexity === 'complex' ? 1.25 : 1
+  const compositionMultiplier = composition === 'full-body' ? 1.15 : composition === 'three-quarter' ? 1.08 : 1
+  const seconds = 75 + Math.max(1, resultCount) * 85 * complexityMultiplier * compositionMultiplier
+  const minSeconds = roundToHalfMinute(seconds * 0.75)
+  const maxSeconds = roundToHalfMinute(seconds * 1.35)
+  return { minSeconds, maxSeconds, label: `${formatMinutes(minSeconds)}~${formatMinutes(maxSeconds)}` }
+}
+
+function roundToHalfMinute(seconds: number) {
+  return Math.max(60, Math.round(seconds / 30) * 30)
+}
+
+function formatMinutes(seconds: number) {
+  const minutes = Math.max(1, Math.round(seconds / 60))
+  return `${minutes}분`
+}
+
+function formatRemainingEstimate(maxSeconds: number, elapsedSec: number) {
+  const remaining = Math.max(0, maxSeconds - elapsedSec)
+  if (remaining <= 0) return '예상보다 오래 걸리고 있습니다. 작업은 계속 진행 중입니다'
+  return `약 ${formatMinutes(remaining)} 이내 완료 예상`
 }

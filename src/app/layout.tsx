@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   keywords: ["AI 프로필", "프로필 사진", "LinkedIn", "이력서 사진", "AI 이미지 생성", "ProfileForge"],
   authors: [{ name: "ProfileForge AI" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: ["/favicon.svg"],
   },
   openGraph: {
     title: "ProfileForge AI",
