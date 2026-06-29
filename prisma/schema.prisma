@@ -1,0 +1,116 @@
+// ProfileForge AI - Prisma schema
+// SQLite 사용 (MVP)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  credits      Int      @default(5)
+  consentVersion String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  uploads   Upload[]
+  jobs      GenerationJob[]
+}
+
+model Upload {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileUrl           String
+  fileName          String
+  fileSize          Int
+  mimeType          String
+  width             Int?
+  height            Int?
+  faceQualityScore  Float?
+  faceCount         Int?
+  selectedFaceIndex Int?
+  expiresAt         DateTime
+  deletedAt         DateTime?
+  createdAt         DateTime @default(now())
+
+  jobs GenerationJob[]
+}
+
+model GenerationJob {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadId    String
+  upload      Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  conceptId   String
+  conceptName String
+  paramsJson  String
+  positivePrompt String
+  negativePrompt String
+  aspectRatio String
+  status      String   @default("pending") // pending, running, succeeded, failed
+  provider    String   @default("zai-image")
+  costCredits Int      @default(0)
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  images GeneratedImage[]
+}
+
+model GeneratedImage {
+  id             String   @id @default(cuid())
+  jobId          String
+  job            GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  imageUrl       String
+  likenessScore  Float?
+  qualityScore   Float?
+  selected       Boolean  @default(false)
+  feedbackTag    String? // face-different, too-ai, weak-concept, too-strong, bg-only, outfit-only
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  downloads Download[]
+  reports   Report[]
+}
+
+model Download {
+  id              String   @id @default(cuid())
+  generatedImageId String
+  image           GeneratedImage @relation(fields: [generatedImageId], references: [id], onDelete: Cascade)
+  format          String   @default("png")
+  resolution      String
+  createdAt       DateTime @default(now())
+}
+
+model Report {
+  id              String   @id @default(cuid())
+  userId          String?
+  generatedImageId String
+  image           GeneratedImage @relation(fields: [generatedImageId], references: [id], onDelete: Cascade)
+  reason          String
+  status          String   @default("open")
+  createdAt       DateTime @default(now())
+}
+
+/// 컨셉/프롬프트 관리 (관리자용)
+model Concept {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  category      String
+  name          String
+  description   String
+  riskLevel     String   @default("safe")
+  promptSeed    String
+  active        Boolean  @default(true)
+  promptVersion String   @default("v1")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

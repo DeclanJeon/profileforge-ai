@@ -1,0 +1,353 @@
+'use client'
+
+import { useProfileStore } from '@/store/profile-store'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Wand2,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Sparkles,
+  RotateCcw,
+  ArrowRight,
+  Info,
+} from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { CATEGORY_LABELS } from '@/lib/profileforge/concepts'
+import { buildPrompts } from '@/lib/profileforge/prompt-builder'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
+
+type Stage = 'preparing' | 'building' | 'generating' | 'scoring' | 'done' | 'failed'
+
+const STAGES: { id: Stage; label: string; durationMs: number }[] = [
+  { id: 'preparing', label: '원본 분석 및 얼굴 임베딩 준비', durationMs: 800 },
+  { id: 'building', label: 'identity-lock 프롬프트 구성', durationMs: 600 },
+  { id: 'generating', label: 'Codex Imagen 스킬로 이미지 생성', durationMs: 4500 },
+  { id: 'scoring', label: '얼굴 유사도·품질·컨셉 적합도 평가', durationMs: 700 },
+]
+
+export function GenerateStep() {
+  const {
+    selectedConcept,
+    customize,
+    uploads,
+    selectedUploadId,
+    setStep,
+    setResults,
+    setJobId,
+    sessionId,
+  } = useProfileStore()
+  const { toast } = useToast()
+  const [stage, setStage] = useState<Stage>('preparing')
+  const [stageProgress, setStageProgress] = useState(0)
+  const [overallProgress, setOverallProgress] = useState(0)
+  const [elapsedSec, setElapsedSec] = useState(0)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const startedRef = useRef(false)
+
+  const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
+  const built = selectedConcept ? buildPrompts(selectedConcept, customize) : null
+
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    void runPipeline()
+  }, [])
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsedSec((s) => s + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const runPipeline = async () => {
+    if (!selectedConcept || !primaryUpload || !built) {
+      setErrorMsg('필수 정보가 누락되었습니다.')
+      setStage('failed')
+      return
+    }
+
+    // 단계별 시뮬레이션 진행
+    let totalElapsed = 0
+    const totalDuration = STAGES.reduce((a, s) => a + s.durationMs, 0)
+
+    for (const s of STAGES) {
+      setStage(s.id)
+      const start = Date.now()
+      const tickMs = 50
+      while (Date.now() - start < s.durationMs) {
+        const p = Math.min(100, ((Date.now() - start) / s.durationMs) * 100)
+        setStageProgress(p)
+        totalElapsed = totalElapsed + tickMs
+        setOverallProgress(Math.min(99, (totalElapsed / totalDuration) * 100))
+        await new Promise((r) => setTimeout(r, tickMs))
+      }
+    }
+
+    // 실제 백엔드 생성 요청
+    try {
+      setStage('generating')
+      const res = await fetch('/api/profileforge/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          uploadId: primaryUpload.serverId,
+          uploadUrl: primaryUpload.serverUrl || primaryUpload.previewUrl,
+          conceptId: selectedConcept.id,
+          conceptName: selectedConcept.name,
+          positivePrompt: built.positive,
+          negativePrompt: built.negative,
+          aspectRatio: built.aspectRatio,
+          size: built.size,
+          resultCount: customize.resultCount,
+          creativity: customize.creativity,
+          identityLockStrength: customize.identityLockStrength,
+          skinRetouch: customize.skinRetouch,
+          aiLabel: customize.aiLabel,
+          thumbnailPrompt: selectedConcept.thumbnailPrompt,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: '생성 실패' }))
+        throw new Error(err.error || '이미지 생성에 실패했습니다.')
+      }
+
+      const initial = await res.json()
+      const newJobId = initial.jobId as string | undefined
+      if (!newJobId) throw new Error('생성 작업 ID를 받지 못했습니다.')
+      setJobId(newJobId)
+
+      const startedAt = Date.now()
+      const maxWaitMs = 45 * 60 * 1000
+      while (Date.now() - startedAt < maxWaitMs) {
+        const statusRes = await fetch(`/api/profileforge/generate?jobId=${encodeURIComponent(newJobId)}`, {
+          cache: 'no-store',
+        })
+        if (!statusRes.ok) {
+          const err = await statusRes.json().catch(() => ({ error: '생성 상태 확인 실패' }))
+          throw new Error(err.error || '생성 상태 확인에 실패했습니다.')
+        }
+
+        const data = await statusRes.json()
+        if (Array.isArray(data.images) && data.images.length > 0) {
+          setResults(data.images)
+          setOverallProgress(Math.min(99, 85 + data.images.length * 3))
+        }
+
+        if (data.status === 'succeeded') {
+          setResults(data.images || [])
+          setOverallProgress(100)
+          setStage('done')
+          toast({
+            title: '생성 완료',
+            description: `${data.images?.length || 0}장의 프로필이 생성되었습니다.`,
+          })
+          setTimeout(() => setStep('results'), 600)
+          return
+        }
+
+        if (data.status === 'failed') {
+          throw new Error(data.error || '이미지 생성에 실패했습니다.')
+        }
+
+        await new Promise((r) => setTimeout(r, 5000))
+      }
+
+      throw new Error('이미지 생성 시간이 너무 오래 걸립니다. 잠시 후 결과 화면을 다시 확인해주세요.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류'
+      setErrorMsg(translateError(msg))
+      setStage('failed')
+      toast({
+        title: '생성 실패',
+        description: translateError(msg),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleRetry = () => {
+    startedRef.current = false
+    setErrorMsg(null)
+    setOverallProgress(0)
+    setStageProgress(0)
+    setStage('preparing')
+    setStep('customize')
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
+      <div className="text-center">
+        <div className="inline-flex w-16 h-16 rounded-full bg-gradient-to-br from-fuchsia-500 to-rose-500 items-center justify-center shadow-md mb-3">
+          {stage === 'failed' ? (
+            <XCircle className="w-8 h-8 text-white" />
+          ) : stage === 'done' ? (
+            <CheckCircle2 className="w-8 h-8 text-white" />
+          ) : (
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          )}
+        </div>
+        <h2 className="text-2xl font-bold">
+          {stage === 'failed' ? '생성 실패' : stage === 'done' ? '생성 완료!' : '프로필 생성 중'}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {stage === 'failed'
+            ? '다시 시도하거나 컨셉을 변경해보세요.'
+            : stage === 'done'
+              ? '결과 비교 화면으로 이동합니다...'
+              : `${selectedConcept?.name} · ${customize.resultCount}장 생성`}
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      {stage !== 'failed' && (
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="font-medium">전체 진행률</span>
+              <span className="tabular-nums">{Math.round(overallProgress)}%</span>
+            </div>
+            <Progress value={overallProgress} className="h-2.5" />
+            <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {elapsedSec}초 경과
+              </span>
+              <span>예상 1~4분</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stage list */}
+      {stage !== 'failed' && (
+        <Card>
+          <CardContent className="pt-5 space-y-3">
+            {STAGES.map((s) => {
+              const currentIdx = STAGES.findIndex((x) => x.id === stage)
+              const idx = STAGES.findIndex((x) => x.id === s.id)
+              const isDone = currentIdx > idx || stage === 'done'
+              const isActive = stage === s.id
+              return (
+                <div key={s.id} className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors',
+                      isDone
+                        ? 'bg-emerald-500 text-white'
+                        : isActive
+                          ? 'bg-fuchsia-500 text-white'
+                          : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : isActive ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span className="text-xs font-semibold">{idx + 1}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        'text-sm font-medium',
+                        isActive ? 'text-foreground' : isDone ? 'text-muted-foreground' : 'text-muted-foreground/60',
+                      )}
+                    >
+                      {s.label}
+                    </p>
+                    {isActive && (
+                      <Progress value={stageProgress} className="h-1 mt-1.5" />
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Job details */}
+      {selectedConcept && (
+        <Card className="bg-muted/30">
+          <CardContent className="pt-4 text-xs space-y-2">
+            <Row label="컨셉" value={selectedConcept.name} />
+            <Row label="카테고리" value={CATEGORY_LABELS[selectedConcept.category]} />
+            <Row label="출력 비율" value={built?.aspectRatio || '-'} />
+            <Row label="사이즈" value={built?.size || '-'} />
+            <Row label="결과 수" value={`${customize.resultCount}장`} />
+            <Row label="창의성" value={`${customize.creativity}/100`} />
+            <Row label="정체성 보존" value={`${customize.identityLockStrength}/100`} />
+            <Row label="피부 보정" value={customize.skinRetouch} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Safety notice for ID-style */}
+      {selectedConcept?.category === 'ID-style' && stage !== 'failed' && (
+        <Alert className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+          <Info className="w-4 h-4 text-amber-600" />
+          <AlertTitle className="text-sm">비공식 용도 안내</AlertTitle>
+          <AlertDescription className="text-xs">
+            본 결과는 AI로 생성된 “여권/증명사진 스타일” 참고용입니다. 공식 여권·비자·주민등록증·운전면허증 제출용으로 사용할 수 없습니다.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error state */}
+      {stage === 'failed' && (
+        <Card className="border-2 border-rose-300">
+          <CardContent className="pt-5 text-center">
+            <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
+            <p className="text-sm font-semibold mb-1">생성 중 오류가 발생했습니다</p>
+            <p className="text-xs text-muted-foreground mb-4">{errorMsg}</p>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setStep('concept')}>
+                컨셉 변경
+              </Button>
+              <Button size="sm" onClick={handleRetry} className="bg-gradient-to-r from-fuchsia-600 to-rose-500">
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                다시 시도
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cancel while in progress */}
+      {stage !== 'failed' && stage !== 'done' && (
+        <div className="text-center">
+          <Button variant="ghost" size="sm" onClick={handleRetry}>
+            취소하고 커스터마이즈로
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  )
+}
+
+function translateError(msg: string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('face') || m.includes('얼굴')) return '얼굴이 불명확합니다. 더 선명한 정면 사진을 업로드해주세요.'
+  if (m.includes('policy') || m.includes('정책') || m.includes('safety')) return '정책 제한으로 생성이 차단되었습니다. 다른 컨셉을 시도해보세요.'
+  if (m.includes('credit') || m.includes('크레딧') || m.includes('limit')) return '크레딧이 부족합니다.'
+  if (m.includes('server') || m.includes('network') || m.includes('서버')) return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+  return msg || '이미지 생성에 실패했습니다. 다시 시도해주세요.'
+}
