@@ -19,7 +19,7 @@ export async function GET(
   const { fileName: rawFileName } = await params
   const fileName = path.basename(rawFileName || '')
 
-  if (!fileName || fileName !== rawFileName || !/^pf_[a-zA-Z0-9_-]+\.png$/.test(fileName)) {
+  if (!fileName || fileName !== rawFileName || !/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/.test(fileName)) {
     return NextResponse.json({ error: '잘못된 이미지 경로입니다.' }, { status: 400 })
   }
 

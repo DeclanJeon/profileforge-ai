@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ProfileForge AI - AI 프로필 자동 생성 웹앱",
-  description: "사진 한 장으로 이력서·LinkedIn·SNS·코스프레·판타지 프로필을 3분 안에 만들어 드려요. 얼굴 정체성을 보존하는 identity-lock 프롬프트 엔진.",
+  description: "사진 한 장으로 이력서·LinkedIn·SNS·코스프레·판타지 프로필을 만들고, 완료 후 이메일로 다운로드 링크를 받는 AI 프로필 생성 웹앱.",
   keywords: ["AI 프로필", "프로필 사진", "LinkedIn", "이력서 사진", "AI 이미지 생성", "ProfileForge"],
   authors: [{ name: "ProfileForge AI" }],
   icons: {

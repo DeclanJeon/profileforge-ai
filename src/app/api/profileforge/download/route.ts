@@ -1,89 +1,92 @@
-/**
- * 다운로드 API
- * - 원격/로컬 이미지를 가져와서 파일로 반환
- * - Download 레코드 저장
- */
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import path from 'path'
 import { promises as fs } from 'fs'
+import { db } from '@/lib/db'
+import { createDownloadUrl } from '@/lib/profileforge/storage'
 import { generatedImageUrlToLocalPath } from '@/lib/profileforge/image-provider'
+
+const ALLOWED_SIZES = new Set(['original', '1024', '2048', 'square', 'web', 'print'])
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { imageUrl, size, jobId, imageId } = body as {
-      imageUrl: string
-      size: string
+    const { size, jobId, imageId, sessionId } = body as {
+      size?: string
       jobId?: string
       imageId?: string
+      sessionId?: string
     }
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: '이미지 URL이 필요합니다.' }, { status: 400 })
+    if (!jobId || !imageId || !sessionId) {
+      return NextResponse.json({ error: '다운로드할 이미지 정보가 필요합니다.' }, { status: 400 })
     }
 
+    const userEmail = `${sessionId}@profileforge.local`
+
+    const image = await db.generatedImage.findFirst({
+      where: {
+        id: imageId,
+        jobId,
+        status: { in: ['available', 'uploaded_r2'] },
+        expiresAt: { gt: new Date() },
+        deletedAt: null,
+        job: {
+          user: {
+            email: userEmail,
+          },
+        },
+      },
+    })
+    if (!image) {
+      return NextResponse.json({ error: '다운로드 가능한 이미지를 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    const downloadUrl = await createDownloadUrl({
+      bucket: image.r2Bucket,
+      key: image.r2Key,
+      imageUrl: image.imageUrl,
+    })
     let buffer: Buffer
-    let mime = 'image/png'
-
-    if (imageUrl.startsWith('/uploads/')) {
-      const filePath = path.join(process.cwd(), 'public', imageUrl)
-      try {
-        buffer = await fs.readFile(filePath)
-      } catch {
-        return NextResponse.json({ error: '파일을 찾을 수 없습니다.' }, { status: 404 })
-      }
-    } else if (imageUrl.startsWith('/api/profileforge/image/')) {
-      const filePath = generatedImageUrlToLocalPath(imageUrl)
+    let mime = image.mimeType || 'image/png'
+    if (downloadUrl.startsWith('/api/profileforge/image/')) {
+      const filePath = generatedImageUrlToLocalPath(downloadUrl)
       if (!filePath) {
-        return NextResponse.json({ error: '지원하지 않는 이미지 URL' }, { status: 400 })
+        return NextResponse.json({ error: '지원하지 않는 이미지 경로입니다.' }, { status: 400 })
       }
       try {
         buffer = await fs.readFile(filePath)
       } catch {
-        return NextResponse.json({ error: '파일을 찾을 수 없습니다.' }, { status: 404 })
+        return NextResponse.json({ error: '이미지 파일을 찾을 수 없습니다.' }, { status: 404 })
       }
-    } else if (imageUrl.startsWith('http')) {
-      const res = await fetch(imageUrl)
-      if (!res.ok) {
+    } else {
+      const response = await fetch(downloadUrl)
+      if (!response.ok) {
         return NextResponse.json({ error: '이미지를 가져올 수 없습니다.' }, { status: 502 })
       }
-      const ab = await res.arrayBuffer()
-      buffer = Buffer.from(ab)
-      mime = res.headers.get('content-type') || 'image/png'
-    } else if (imageUrl.startsWith('data:')) {
-      const base64 = imageUrl.split(',')[1] || ''
-      buffer = Buffer.from(base64, 'base64')
-      mime = imageUrl.split(';')[0].split(':')[1] || 'image/png'
-    } else {
-      return NextResponse.json({ error: '지원하지 않는 이미지 URL' }, { status: 400 })
+      buffer = Buffer.from(await response.arrayBuffer())
+      mime = response.headers.get('content-type') || mime
     }
+    const safeSize = size && ALLOWED_SIZES.has(size) ? size : 'original'
+    const extension = mime.includes('jpeg') ? 'jpg' : mime.includes('webp') ? 'webp' : 'png'
 
-    if (imageId) {
-      try {
-        await db.download.create({
-          data: {
-            generatedImageId: imageId,
-            format: mime.includes('jpeg') ? 'jpg' : 'png',
-            resolution: size || 'original',
-          },
-        })
-      } catch {
-        // imageId가 DB에 없으면 무시
-      }
-    }
+    await db.download.create({
+      data: {
+        generatedImageId: image.id,
+        format: extension,
+        resolution: safeSize,
+      },
+    })
 
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': mime,
-        'Content-Disposition': `attachment; filename="profileforge-${size || 'original'}.png"`,
-        'Cache-Control': 'no-store',
+        'Content-Disposition': `attachment; filename="profileforge-${safeSize}.${extension}"`,
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     })
-  } catch (e) {
-    console.error('[download] error', e)
+  } catch (error) {
+    console.error('[download] error', error)
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : '다운로드 실패' },
+      { error: '다운로드 실패' },
       { status: 500 },
     )
   }

@@ -143,6 +143,6 @@ export async function createDownloadUrl(input: { bucket?: string | null; key?: s
     )
   }
   if (input.bucket === 'local' && input.key) return `/api/profileforge/image/${encodeURIComponent(path.basename(input.key))}`
-  if (input.imageUrl) return input.imageUrl
+  if (input.imageUrl?.startsWith('/api/profileforge/image/')) return input.imageUrl
   throw new Error('No downloadable image storage location')
 }

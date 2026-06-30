@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { db } from '@/lib/db'
 import { profileForgeConfig } from './config'
+import { deleteStoredImage } from './storage'
 
 const ACTIVE_JOB_STATUSES = ['pending', 'queued', 'running']
 
@@ -14,7 +15,18 @@ export function makeGenerationIdempotencyKey(input: {
   conceptId: string
   resultCount: number
   size: string
+  aspectRatio?: string
+  creativity?: number
+  identityLockStrength?: number
+  skinRetouch?: string
+  aiLabel?: boolean
+  positivePrompt?: string
+  negativePrompt?: string
 }) {
+  const promptHash = crypto
+    .createHash('sha256')
+    .update([input.positivePrompt || '', input.negativePrompt || ''].join('\n---negative---\n'))
+    .digest('hex')
   return crypto
     .createHash('sha256')
     .update([
@@ -23,6 +35,12 @@ export function makeGenerationIdempotencyKey(input: {
       input.conceptId,
       String(input.resultCount),
       input.size,
+      input.aspectRatio || '',
+      String(input.creativity ?? ''),
+      String(input.identityLockStrength ?? ''),
+      input.skinRetouch || '',
+      input.aiLabel ? 'ai-label' : 'no-ai-label',
+      promptHash,
     ].join(':'))
     .digest('hex')
 }
@@ -128,6 +146,23 @@ export async function heartbeatGenerationJob(jobId: string, workerId: string) {
   })
 }
 
+async function deletePartialGeneratedImages(jobId: string) {
+  const images = await db.generatedImage.findMany({
+    where: { jobId, status: { in: ['available', 'uploaded_r2'] } },
+  })
+  for (const image of images) {
+    const deleted = await deleteStoredImage({ bucket: image.r2Bucket, key: image.r2Key, imageUrl: image.imageUrl })
+    if (!deleted) {
+      throw new Error('partial generated image cleanup failed')
+    }
+    await db.generatedImage.update({
+      where: { id: image.id },
+      data: { status: 'deleted', deletedAt: new Date() },
+    })
+  }
+}
+
+
 export async function requeueStaleRunningJobs() {
   const cutoff = new Date(Date.now() - profileForgeConfig.queue.staleRunningSeconds * 1000)
   const stale = await db.generationJob.findMany({
@@ -153,18 +188,47 @@ export async function requeueStaleRunningJobs() {
       lastHeartbeatAt: job.lastHeartbeatAt,
     } as const
     if (job.attemptCount < job.maxAttempts) {
-      const updated = await db.generationJob.updateMany({
+      const claimed = await db.generationJob.updateMany({
         where: staleGuard,
         data: {
-          status: 'queued',
-          lockedBy: null,
-          lockExpiresAt: null,
-          nextRunAt: new Date(Date.now() + Math.min(15 * 60_000, job.attemptCount * 60_000)),
-          errorMessage: 'Job recovered after stale worker heartbeat',
-          lastErrorCode: 'stale_worker',
+          status: 'recovering',
+          lockedBy: `recovery-${process.pid}`,
+          lockExpiresAt: new Date(Date.now() + 5 * 60_000),
+          errorMessage: '작업 연결이 지연되어 재시도 준비 중입니다.',
+          lastErrorCode: 'stale_worker_recovering',
         },
       })
-      if (updated.count === 1) requeued += 1
+      if (claimed.count === 1) {
+        try {
+          await deletePartialGeneratedImages(job.id)
+          const updated = await db.generationJob.updateMany({
+            where: { id: job.id, status: 'recovering', lockedBy: `recovery-${process.pid}` },
+            data: {
+              status: 'queued',
+              lockedBy: null,
+              lockExpiresAt: null,
+              nextRunAt: new Date(Date.now() + Math.min(15 * 60_000, job.attemptCount * 60_000)),
+              errorMessage: '작업 연결이 지연되어 대기열에 다시 등록했습니다.',
+              lastErrorCode: 'stale_worker',
+            },
+          })
+          if (updated.count === 1) requeued += 1
+        } catch (error) {
+          await db.generationJob.updateMany({
+            where: { id: job.id, status: 'recovering', lockedBy: `recovery-${process.pid}` },
+            data: {
+              status: 'failed',
+              failedAt: new Date(),
+              completedAt: new Date(),
+              lockedBy: null,
+              lockExpiresAt: null,
+              errorMessage: '재시도 준비 중 임시 결과 정리에 실패했습니다. 다시 시도해주세요.',
+              lastErrorCode: 'recovery_cleanup_failed',
+            },
+          })
+          failed += 1
+        }
+      }
     } else {
       const updated = await db.generationJob.updateMany({
         where: staleGuard,
@@ -172,7 +236,9 @@ export async function requeueStaleRunningJobs() {
           status: 'failed',
           failedAt: new Date(),
           completedAt: new Date(),
-          errorMessage: 'Generation job failed after retry budget was exhausted',
+          lockedBy: null,
+          lockExpiresAt: null,
+          errorMessage: '반복 처리 지연으로 생성이 완료되지 않았습니다. 다시 시도해주세요.',
           lastErrorCode: 'retry_exhausted',
         },
       })

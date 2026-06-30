@@ -15,14 +15,12 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Download,
-  RotateCcw,
   Sparkles,
   CheckCircle2,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   X,
-  Wand2,
   Crop,
   Trash2,
   Frown,
@@ -31,6 +29,7 @@ import {
   Shirt,
   Image as ImageIcon,
   RefreshCw,
+  Mail,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
@@ -56,10 +55,12 @@ export function ResultsStep() {
     openEditor,
     sessionId,
     jobId,
+    contactEmail,
+    generationStatus,
   } = useProfileStore()
   const { toast } = useToast()
   const [zoomId, setZoomId] = useState<string | null>(null)
-  const [regenerating, setRegenerating] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
 
   const zoomResult = results.find((r) => r.id === zoomId)
 
@@ -85,10 +86,10 @@ export function ResultsStep() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: r.imageUrl,
           size,
           jobId,
           imageId: r.id,
+          sessionId,
         }),
       })
       if (!res.ok) throw new Error('다운로드 실패')
@@ -108,31 +109,12 @@ export function ResultsStep() {
     }
   }
 
-  const handleRegenerate = async (feedback?: string) => {
-    setRegenerating(true)
-    try {
-      // 동일 컨셉 재생성 - 피드백이 있으면 prompt delta 반영
-      await new Promise((r) => setTimeout(r, 1500))
-      const newSeed = Math.floor(Math.random() * 1_000_000)
-      const newResult: GeneratedResult = {
-        id: 'res_' + Math.random().toString(36).slice(2, 10),
-        imageUrl: results[0].imageUrl + `?v=${newSeed}`,
-        thumbnailUrl: results[0].thumbnailUrl + `?v=${newSeed}`,
-        likenessScore: Math.min(98, (results[0].likenessScore || 80) + Math.random() * 5),
-        qualityScore: Math.min(98, (results[0].qualityScore || 85) + Math.random() * 5),
-        conceptFitScore: Math.min(98, (results[0].conceptFitScore || 82) + Math.random() * 5),
-        seed: newSeed,
-        feedback,
-      }
-      useProfileStore.getState().addResult(newResult)
-      selectResult(newResult.id)
-      toast({
-        title: '재생성 완료',
-        description: feedback ? `피드백 "${FEEDBACKS.find((f) => f.id === feedback)?.label}" 반영됨` : '새 결과가 추가되었습니다.',
-      })
-    } finally {
-      setRegenerating(false)
-    }
+  const handleFeedback = (resultId: string, feedback: string) => {
+    setResultFeedback(resultId, feedback)
+    toast({
+      title: '피드백 저장',
+      description: '피드백은 다음 신규 생성 요청에서 참고할 수 있도록 표시됩니다.',
+    })
   }
 
   const handleDelete = async () => {
@@ -144,6 +126,32 @@ export function ResultsStep() {
       setStep('landing')
     } catch {
       toast({ title: '삭제 실패', variant: 'destructive' })
+    }
+  }
+
+  const handleResendEmail = async () => {
+    if (!jobId || !contactEmail) return
+    setResendingEmail(true)
+    try {
+      const res = await fetch('/api/profileforge/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, email: contactEmail }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || '이메일 재발송 실패')
+      toast({
+        title: '이메일 재발송 요청 완료',
+        description: data.message || '다운로드 링크를 다시 보내고 있습니다.',
+      })
+    } catch (error) {
+      toast({
+        title: '이메일 재발송 실패',
+        description: error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setResendingEmail(false)
     }
   }
 
@@ -175,6 +183,42 @@ export function ResultsStep() {
         </AlertDescription>
       </Alert>
 
+      {generationStatus === 'partially_succeeded' && (
+        <Alert className="border-orange-200 bg-orange-50/70 dark:bg-orange-950/20">
+          <AlertTriangle className="w-4 h-4 text-orange-600" />
+          <AlertTitle className="text-sm">일부 결과만 생성되었습니다</AlertTitle>
+          <AlertDescription className="text-xs">
+            요청한 이미지 중 {results.length}장만 성공했습니다. 실패한 이미지는 과금/다운로드 대상에서 제외되며, 이메일 링크에도 성공한 결과만 포함됩니다.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Alert className="border-fuchsia-200 bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
+        <Mail className="w-4 h-4 text-fuchsia-600" />
+        <AlertTitle className="text-sm">다운로드 링크 이메일 발송</AlertTitle>
+        <AlertDescription className="text-xs space-y-2">
+          <p>
+            결과 다운로드 링크는 {contactEmail || '입력한 이메일'}로 발송됩니다. 브라우저를 닫아도 이메일 링크로 다시 받을 수 있습니다.
+          </p>
+          <p className="text-muted-foreground">
+            생성 결과는 보안 저장소에 임시 보관되며, 링크 만료 또는 정리 작업 이후 복구할 수 없습니다.
+          </p>
+          {jobId && contactEmail && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              disabled={resendingEmail}
+              onClick={handleResendEmail}
+            >
+              {resendingEmail ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Mail className="w-3.5 h-3.5 mr-1" />}
+              이메일 재발송
+            </Button>
+          )}
+        </AlertDescription>
+      </Alert>
+
       {/* Results grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {results.map((r) => (
@@ -194,10 +238,8 @@ export function ResultsStep() {
       {selectedResultId && (
         <SelectedActionBar
           result={results.find((r) => r.id === selectedResultId)!}
-          onRegenerate={() => handleRegenerate()}
-          onFeedback={(f) => handleRegenerate(f)}
+          onFeedback={(resultId, feedback) => handleFeedback(resultId, feedback)}
           onDelete={handleDelete}
-          regenerating={regenerating}
         />
       )}
 
@@ -388,16 +430,12 @@ function ScoreCell({ label, value }: { label: string; value: number }) {
 
 function SelectedActionBar({
   result,
-  onRegenerate,
   onFeedback,
   onDelete,
-  regenerating,
 }: {
   result: GeneratedResult
-  onRegenerate: () => void
-  onFeedback: (f: string) => void
+  onFeedback: (resultId: string, feedback: string) => void
   onDelete: () => void
-  regenerating: boolean
 }) {
   const { openEditor } = useProfileStore()
   return (
@@ -419,24 +457,11 @@ function SelectedActionBar({
               <Trash2 className="w-3.5 h-3.5 mr-1" />
               데이터 삭제
             </Button>
-            <Button
-              size="sm"
-              onClick={onRegenerate}
-              disabled={regenerating}
-              className="bg-gradient-to-r from-fuchsia-600 to-rose-500"
-            >
-              {regenerating ? (
-                <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
-              ) : (
-                <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              )}
-              재생성
-            </Button>
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-medium mb-2 text-muted-foreground">피드백으로 재생성 (다음 생성에 반영)</p>
+          <p className="text-xs font-medium mb-2 text-muted-foreground">피드백 표시 (다음 신규 생성 요청 참고용)</p>
           <div className="flex flex-wrap gap-1.5">
             {FEEDBACKS.map((f) => {
               const Icon = f.icon
@@ -445,7 +470,7 @@ function SelectedActionBar({
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => onFeedback(f.id)}
+                  onClick={() => onFeedback(result.id, f.id)}
                   className={cn(
                     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border transition-colors',
                     isActive

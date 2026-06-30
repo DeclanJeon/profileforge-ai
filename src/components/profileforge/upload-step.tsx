@@ -180,7 +180,7 @@ export function UploadStep() {
               <ul className="text-xs text-muted-foreground space-y-1 leading-relaxed">
                 <li>• 본인 또는 생성 권한이 있는 인물 사진만 업로드할 수 있습니다.</li>
                 <li>• 타인·유명인·미성년자 부적절 이미지, 기만적 신분 생성은 제한됩니다.</li>
-                <li>• 원본 이미지는 모델 학습에 사용되지 않으며, 30분 후 자동 삭제됩니다. 생성 결과는 10분 후 삭제됩니다.</li>
+                <li>• 원본 이미지는 모델 학습에 사용되지 않으며, 30분 후 자동 삭제됩니다. 생성 결과 다운로드 링크는 24시간 동안 유효합니다.</li>
                 <li>• 언제든지 즉시 삭제할 수 있습니다.</li>
               </ul>
               <label className="flex items-center gap-2 mt-3 cursor-pointer">

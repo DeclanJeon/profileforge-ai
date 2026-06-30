@@ -45,10 +45,10 @@ const SKIN_OPTIONS: { value: CustomizeOptions['skinRetouch']; label: string; des
   { value: 'strong', label: '매끄럽게', desc: '보정 강화 (인형 금지)' },
 ]
 
-const RESULT_COUNT_OPTIONS = [2, 4, 6, 8]
+const RESULT_COUNT_OPTIONS = [1, 2, 4]
 
 export function CustomizeStep() {
-  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, deductCredits, uploads, contactEmail, setContactEmail } = useProfileStore()
+  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, uploads, contactEmail, setContactEmail } = useProfileStore()
   const [showPromptPreview, setShowPromptPreview] = useState(false)
 
   if (!selectedConcept) {
@@ -278,9 +278,9 @@ export function CustomizeStep() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4" />생성 결과 수</CardTitle>
-              <CardDescription className="text-xs">많을수록 선택의 폭이 넓어지고 크레딧이 많이 소모됩니다.</CardDescription>
+              <CardDescription className="text-xs">기본 1장으로 빠르게 받고, 필요하면 2~4장으로 선택 폭을 넓힐 수 있습니다.</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-4 gap-2">
+            <CardContent className="grid grid-cols-3 gap-2">
               {RESULT_COUNT_OPTIONS.map((n) => (
                 <button
                   key={n}
@@ -382,7 +382,6 @@ export function CustomizeStep() {
               size="sm"
               disabled={totalCost > useProfileStore.getState().credits || uploads.length === 0 || !emailValid}
               onClick={() => {
-                deductCredits(totalCost)
                 setStep('generate')
               }}
               className="bg-gradient-to-r from-fuchsia-600 to-rose-500"

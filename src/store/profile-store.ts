@@ -79,9 +79,11 @@ interface ProfileState {
 
   // 생성
   jobId: string | null
+  generationStatus: 'succeeded' | 'partially_succeeded' | 'failed' | null
   results: GeneratedResult[]
   selectedResultId: string | null
   setJobId: (id: string | null) => void
+  setGenerationStatus: (status: ProfileState['generationStatus']) => void
   setResults: (r: GeneratedResult[]) => void
   addResult: (r: GeneratedResult) => void
   selectResult: (id: string | null) => void
@@ -111,7 +113,7 @@ const DEFAULT_CUSTOMIZE: CustomizeOptions = {
   creativity: 30,
   identityLockStrength: 75,
   aspectRatio: '4:5',
-  resultCount: 4,
+  resultCount: 1,
   skinRetouch: 'natural',
   aiLabel: false,
 }
@@ -186,9 +188,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }),
 
   jobId: null,
+  generationStatus: null,
   results: [],
   selectedResultId: null,
   setJobId: (id) => set({ jobId: id }),
+  setGenerationStatus: (status) => set({ generationStatus: status }),
   setResults: (r) => set({ results: r, selectedResultId: r[0]?.id ?? null }),
   addResult: (r) => set((s) => ({ results: [...s.results, r] })),
   selectResult: (id) => set({ selectedResultId: id }),
@@ -221,6 +225,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       selectedConcept: null,
       customize: DEFAULT_CUSTOMIZE,
       jobId: null,
+      generationStatus: null,
       results: [],
       selectedResultId: null,
       consentAgreed: false,

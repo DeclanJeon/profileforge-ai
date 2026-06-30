@@ -107,7 +107,9 @@ const USE_CASE_BY_CATEGORY: Record<Concept['category'], string> = {
 }
 
 const DIVERSITY_INSTRUCTION =
-  "Use the uploaded image only as the identity reference. Do not copy the source photo's pose, hand-under-chin gesture, monochrome tone, crop, clothing, background, or camera angle unless explicitly requested. Create a new photoshoot-like image with a distinct pose, angle, framing, scene, wardrobe, and lighting that fits the selected concept."
+  "Use the uploaded image only as the face and identity reference. Preserve the same person's facial structure, age range, skin tone, hairline, glasses if present, and distinctive features, but do not preserve the source photo's pose, expression, hand-under-chin gesture, monochrome tone, crop, clothing, background, or camera angle unless explicitly requested. Create a new photoshoot-like image with a distinct expression, pose, angle, framing, scene, wardrobe, and lighting that fits the selected concept."
+const THUMBNAIL_MATCH_INSTRUCTION =
+  'The concept thumbnail shown in the product is the visual promise for this selection. Match that concept promise through the same kind of wardrobe silhouette, scene, camera framing, pose energy, lighting mood, and overall composition described below, while keeping only the uploaded face identity from the reference image.'
 
 const CONCEPT_DETAIL_PROMPTS: Record<string, string> = {
   'pro-corporate-navy':
@@ -297,6 +299,7 @@ export const buildPrompts = (
     idStylePrefix,
     `${idLock} ${creativity}`,
     DIVERSITY_INSTRUCTION,
+    THUMBNAIL_MATCH_INSTRUCTION,
     CONCEPT_DETAIL_PROMPTS[concept.id],
     ipSafety,
     `Create a ${useCase} image in the concept style: "${modelConceptName}".`,

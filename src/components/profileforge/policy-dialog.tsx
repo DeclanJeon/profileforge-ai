@@ -90,7 +90,7 @@ export function PolicyDialog() {
             color="text-emerald-600"
           >
             <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-              <li>생성 결과 이미지는 <strong>10분 후 자동 삭제</strong>되고, 업로드 원본은 30분 후 자동 삭제됩니다.</li>
+              <li>생성 결과 다운로드 링크는 <strong>24시간 동안 유효</strong>하고, 업로드 원본은 30분 후 자동 삭제됩니다.</li>
               <li>사용자가 즉시 삭제할 수 있습니다 (업로드·결과 임시 파일 일괄 삭제).</li>
               <li>모델 학습용 얼굴 데이터 영구 보관은 <strong>기본 사용하지 않습니다</strong>.</li>
               <li>생성 결과는 공개 정적 경로가 아닌 API 전용 no-store 임시 경로로만 제공됩니다.</li>

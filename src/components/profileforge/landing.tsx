@@ -60,7 +60,7 @@ const USE_CASES = [
 const FLOW = [
   { icon: Upload, title: '1. 업로드', desc: '얼굴이 잘 보이는 사진 1~5장 드래그 앤 드롭' },
   { icon: Wand2, title: '2. 컨셉 선택', desc: '9개 카테고리 50+ 컨셉 중 선택' },
-  { icon: Sparkles, title: '3. 자동 생성', desc: 'identity-lock 프롬프트로 4장 생성' },
+  { icon: Sparkles, title: '3. 자동 생성', desc: '기본 1장, 필요하면 최대 4장까지 생성' },
   { icon: Download, title: '4. 다운로드', desc: '크롭/보정 후 LinkedIn·이력서 비율로 저장' },
 ]
 
@@ -97,7 +97,7 @@ export function Landing() {
             </h1>
             <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               얼굴 정체성을 보존하면서 이력서·LinkedIn·SNS·코스프레·판타지 프로필까지.
-              비전문가도 3분 안에 고품질 프로필 사진 후보를 받아볼 수 있습니다.
+              생성은 대기열에서 처리되고 완료되면 이메일로 다운로드 링크를 보내드립니다.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
@@ -124,7 +124,7 @@ export function Landing() {
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 20 크레딧 무료 제공
               </span>
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 결과 10분 후 자동 삭제
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 다운로드 링크 24시간 유효
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 모델 학습 미사용
@@ -252,9 +252,9 @@ export function Landing() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <TrustItem icon={Lock} title="정체성 보존" desc="identity-lock 프롬프트로 원본 인물을 그대로" />
-              <TrustItem icon={Clock} title="10분 결과 TTL" desc="생성 결과 10분 뒤 자동 삭제, 즉시 삭제도 가능" />
+              <TrustItem icon={Clock} title="24시간 다운로드" desc="링크 만료 후 결과 삭제, 즉시 삭제도 가능" />
               <TrustItem icon={Users} title="본인 확인" desc="본인 또는 권한 있는 인물 사진만 업로드" />
-              <TrustItem icon={Zap} title="3분 컷" desc="업로드부터 첫 결과까지 3분 이내" />
+              <TrustItem icon={Zap} title="대기열 처리" desc="브라우저를 닫아도 완료 후 이메일 발송" />
             </div>
           </CardContent>
         </Card>

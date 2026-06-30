@@ -19,8 +19,8 @@ export function Footer() {
               <span className="font-semibold">ProfileForge AI</span>
             </div>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              본인 사진 한 장으로 이력서·LinkedIn·SNS·코스프레·판타지 프로필을 3분 안에 만드는 AI 웹앱.
-              생성 결과는 10분 후, 업로드 원본은 30분 후 자동 삭제됩니다.
+              본인 사진 한 장으로 이력서·LinkedIn·SNS·코스프레·판타지 프로필을 만드는 AI 웹앱.
+              생성은 대기열에서 처리되며 완료 후 이메일로 다운로드 링크를 보내드립니다.
             </p>
           </div>
 
@@ -50,7 +50,7 @@ export function Footer() {
               데이터 보관
             </h4>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li>결과 10분 · 원본 30분 TTL 삭제</li>
+              <li>다운로드 링크 24시간 · 원본 30분 TTL 삭제</li>
               <li>모델 학습 미사용 (기본값)</li>
               <li>사용자 즉시 삭제 지원</li>
               <li>API 전용 no-store 임시 제공</li>

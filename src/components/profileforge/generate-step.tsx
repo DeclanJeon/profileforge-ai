@@ -23,13 +23,13 @@ import { buildPrompts } from '@/lib/profileforge/prompt-builder'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
-type Stage = 'preparing' | 'building' | 'generating' | 'scoring' | 'done' | 'failed'
+type Stage = 'submitting' | 'queued' | 'running' | 'done' | 'failed'
 
-const STAGES: { id: Stage; label: string; durationMs: number }[] = [
-  { id: 'preparing', label: '원본 분석 및 얼굴 특징 확인', durationMs: 800 },
-  { id: 'building', label: '컨셉 프롬프트 구성', durationMs: 600 },
-  { id: 'generating', label: '고해상도 프로필 이미지 생성', durationMs: 4500 },
-  { id: 'scoring', label: '품질 확인 및 결과 정리', durationMs: 700 },
+const STAGES: { id: Stage; label: string }[] = [
+  { id: 'submitting', label: '생성 요청 접수' },
+  { id: 'queued', label: '대기열 등록 및 순번 확인' },
+  { id: 'running', label: '고해상도 프로필 이미지 생성' },
+  { id: 'done', label: '다운로드 링크 이메일 발송 준비' },
 ]
 
 export function GenerateStep() {
@@ -41,21 +41,25 @@ export function GenerateStep() {
     setStep,
     setResults,
     setJobId,
+    setGenerationStatus,
     sessionId,
     contactEmail,
   } = useProfileStore()
   const { toast } = useToast()
-  const [stage, setStage] = useState<Stage>('preparing')
-  const [stageProgress, setStageProgress] = useState(0)
-  const [overallProgress, setOverallProgress] = useState(0)
+  const [stage, setStage] = useState<Stage>('submitting')
+  const [overallProgress, setOverallProgress] = useState(8)
   const [elapsedSec, setElapsedSec] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [serverMessage, setServerMessage] = useState('생성 요청을 접수하고 있습니다.')
+  const [queuePosition, setQueuePosition] = useState<number | null>(null)
+  const [serverEtaSeconds, setServerEtaSeconds] = useState<number | null>(null)
+  const [emailStatus, setEmailStatus] = useState<string | null>(null)
   const startedRef = useRef(false)
 
   const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
   const built = selectedConcept ? buildPrompts(selectedConcept, customize) : null
   const estimatedTime = selectedConcept ? estimateGenerationTime(selectedConcept, customize.resultCount) : null
-  const remainingLabel = estimatedTime ? formatRemainingEstimate(estimatedTime.maxSeconds, elapsedSec) : null
+
 
   useEffect(() => {
     if (startedRef.current) return
@@ -75,26 +79,15 @@ export function GenerateStep() {
       return
     }
 
-    // 단계별 시뮬레이션 진행
-    let totalElapsed = 0
-    const totalDuration = STAGES.reduce((a, s) => a + s.durationMs, 0)
+    setStage('submitting')
+    setOverallProgress(8)
+    setServerMessage('생성 요청을 접수하고 있습니다.')
+    setQueuePosition(null)
+    setServerEtaSeconds(null)
+    setEmailStatus(null)
+    setGenerationStatus(null)
 
-    for (const s of STAGES) {
-      setStage(s.id)
-      const start = Date.now()
-      const tickMs = 50
-      while (Date.now() - start < s.durationMs) {
-        const p = Math.min(100, ((Date.now() - start) / s.durationMs) * 100)
-        setStageProgress(p)
-        totalElapsed = totalElapsed + tickMs
-        setOverallProgress(Math.min(99, (totalElapsed / totalDuration) * 100))
-        await new Promise((r) => setTimeout(r, tickMs))
-      }
-    }
-
-    // 실제 백엔드 생성 요청
     try {
-      setStage('generating')
       const res = await fetch('/api/profileforge/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,6 +121,13 @@ export function GenerateStep() {
       if (!newJobId) throw new Error('생성 작업 ID를 받지 못했습니다.')
       setJobId(newJobId)
 
+      setStage(initial.status === 'running' ? 'running' : 'queued')
+      setServerMessage(initial.message || '생성 요청이 접수되었습니다.')
+      setQueuePosition(typeof initial.queuePosition === 'number' ? initial.queuePosition : null)
+      setServerEtaSeconds(typeof initial.estimatedWaitSeconds === 'number' ? initial.estimatedWaitSeconds : null)
+      setEmailStatus(initial.emailStatus || null)
+      setOverallProgress(initial.status === 'running' ? 45 : 18)
+
       const startedAt = Date.now()
       const maxWaitMs = 45 * 60 * 1000
       while (Date.now() - startedAt < maxWaitMs) {
@@ -140,13 +140,27 @@ export function GenerateStep() {
         }
 
         const data = await statusRes.json()
+        setServerMessage(data.message || '작업 상태를 확인하고 있습니다.')
+        setQueuePosition(typeof data.queuePosition === 'number' ? data.queuePosition : null)
+        setServerEtaSeconds(typeof data.estimatedWaitSeconds === 'number' ? data.estimatedWaitSeconds : null)
+        setEmailStatus(data.emailStatus || null)
+
+        if (data.status === 'queued') {
+          setStage('queued')
+          setOverallProgress(22)
+        } else if (data.status === 'running') {
+          setStage('running')
+          setOverallProgress((current) => Math.max(current, Math.min(92, current + 4)))
+        }
+
         if (Array.isArray(data.images) && data.images.length > 0) {
           setResults(data.images)
-          setOverallProgress(Math.min(99, 85 + data.images.length * 3))
+          setOverallProgress(Math.min(96, 80 + data.images.length * 4))
         }
 
         if (data.status === 'succeeded' || data.status === 'partially_succeeded') {
           setResults(data.images || [])
+          setGenerationStatus(data.status)
           setOverallProgress(100)
           setStage('done')
           toast({
@@ -180,9 +194,12 @@ export function GenerateStep() {
   const handleRetry = () => {
     startedRef.current = false
     setErrorMsg(null)
-    setOverallProgress(0)
-    setStageProgress(0)
-    setStage('preparing')
+    setOverallProgress(8)
+    setServerMessage('생성 요청을 접수하고 있습니다.')
+    setQueuePosition(null)
+    setServerEtaSeconds(null)
+    setEmailStatus(null)
+    setStage('submitting')
     setStep('customize')
   }
 
@@ -199,7 +216,7 @@ export function GenerateStep() {
           )}
         </div>
         <h2 className="text-2xl font-bold">
-          {stage === 'failed' ? '생성 실패' : stage === 'done' ? '생성 완료!' : '프로필 생성 중'}
+          {stage === 'failed' ? '생성 실패' : stage === 'done' ? '생성 완료!' : stage === 'submitting' ? '요청 접수 중' : stage === 'queued' ? '대기열에서 처리 중' : '프로필 생성 중'}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           {stage === 'failed'
@@ -215,7 +232,7 @@ export function GenerateStep() {
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center justify-between text-xs mb-2">
-              <span className="font-medium">전체 진행률</span>
+              <span className="font-medium">처리 상태</span>
               <span className="tabular-nums">{Math.round(overallProgress)}%</span>
             </div>
             <Progress value={overallProgress} className="h-2.5" />
@@ -224,8 +241,9 @@ export function GenerateStep() {
                 <Clock className="w-3 h-3" />
                 {elapsedSec}초 경과
               </span>
-              <span>{estimatedTime ? `예상 ${estimatedTime.label}` : '예상 계산 중'}</span>
+              <span>{queuePosition ? `대기 ${queuePosition}번째` : serverEtaSeconds ? `예상 ${formatMinutes(serverEtaSeconds)}` : estimatedTime ? `예상 ${estimatedTime.label}` : '예상 계산 중'}</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-3">{serverMessage}</p>
           </CardContent>
         </Card>
       )}
@@ -233,9 +251,9 @@ export function GenerateStep() {
       {stage !== 'failed' && stage !== 'done' && estimatedTime && (
         <Alert className="border-fuchsia-200 bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
           <Clock className="w-4 h-4 text-fuchsia-600" />
-          <AlertTitle className="text-sm">예상 대기시간: 약 {estimatedTime.label}</AlertTitle>
+          <AlertTitle className="text-sm">예상 대기시간: 약 {serverEtaSeconds ? formatMinutes(serverEtaSeconds) : estimatedTime.label}</AlertTitle>
           <AlertDescription className="text-xs">
-            {remainingLabel}. 전신·판타지·코스프레처럼 복잡한 컨셉은 조금 더 걸릴 수 있습니다.
+            브라우저를 닫아도 서버 대기열에서 작업이 계속 진행되고, 완료되면 입력한 이메일로 다운로드 링크를 보냅니다.
           </AlertDescription>
         </Alert>
       )}
@@ -279,7 +297,9 @@ export function GenerateStep() {
                       {s.label}
                     </p>
                     {isActive && (
-                      <Progress value={stageProgress} className="h-1 mt-1.5" />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {stage === 'queued' && queuePosition ? `현재 대기열 ${queuePosition}번째입니다.` : serverMessage}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -301,6 +321,7 @@ export function GenerateStep() {
             <Row label="창의성" value={`${customize.creativity}/100`} />
             <Row label="정체성 보존" value={`${customize.identityLockStrength}/100`} />
             <Row label="피부 보정" value={customize.skinRetouch} />
+            {emailStatus && <Row label="이메일 상태" value={emailStatusLabel(emailStatus)} />}
           </CardContent>
         </Card>
       )}
@@ -386,8 +407,10 @@ function formatMinutes(seconds: number) {
   return `${minutes}분`
 }
 
-function formatRemainingEstimate(maxSeconds: number, elapsedSec: number) {
-  const remaining = Math.max(0, maxSeconds - elapsedSec)
-  if (remaining <= 0) return '예상보다 오래 걸리고 있습니다. 작업은 계속 진행 중입니다'
-  return `약 ${formatMinutes(remaining)} 이내 완료 예상`
+function emailStatusLabel(status: string) {
+  if (status === 'sent') return '발송 완료'
+  if (status === 'sending') return '발송 중'
+  if (status === 'failed') return '발송 실패 - 결과 화면에서 다운로드를 확인해주세요'
+  if (status === 'pending') return '발송 대기'
+  return status
 }

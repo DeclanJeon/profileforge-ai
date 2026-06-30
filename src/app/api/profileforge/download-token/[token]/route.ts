@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { claimDownloadToken } from '@/lib/profileforge/download-tokens'
+import { claimDownloadToken, peekDownloadToken } from '@/lib/profileforge/download-tokens'
 import { createDownloadUrl } from '@/lib/profileforge/storage'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
@@ -10,12 +10,39 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
       return NextResponse.json({ error: '다운로드 링크를 확인할 수 없습니다.' }, { status: 404 })
     }
 
-    const claimed = await claimDownloadToken(token)
-    if (!claimed || !claimed.generatedImage) {
+    const preview = await peekDownloadToken(token)
+    if (!preview || preview.status !== 'active' || preview.revokedAt || preview.expiresAt <= new Date()) {
       return NextResponse.json({ error: '다운로드 링크가 만료되었거나 사용할 수 없습니다.' }, { status: 410 })
     }
-    const image = claimed.generatedImage
-    if (!['available', 'uploaded_r2'].includes(image.status) || image.expiresAt <= new Date()) {
+
+    const requestedImageId = _req.nextUrl.searchParams.get('imageId')
+    const previewImage = preview.generatedImage ?? await db.generatedImage.findFirst({
+      where: {
+        id: requestedImageId || undefined,
+        jobId: preview.jobId,
+        status: { in: ['available', 'uploaded_r2'] },
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    if (!previewImage) {
+      return NextResponse.json({ error: '이미지가 만료되었거나 삭제되었습니다.' }, { status: 410 })
+    }
+
+    const claimed = await claimDownloadToken(token)
+    if (!claimed) {
+      return NextResponse.json({ error: '다운로드 링크가 만료되었거나 사용할 수 없습니다.' }, { status: 410 })
+    }
+    const image = claimed.generatedImage ?? await db.generatedImage.findFirst({
+      where: {
+        id: previewImage.id,
+        jobId: claimed.jobId,
+        status: { in: ['available', 'uploaded_r2'] },
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    if (!image) {
       return NextResponse.json({ error: '이미지가 만료되었거나 삭제되었습니다.' }, { status: 410 })
     }
 

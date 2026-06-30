@@ -37,7 +37,9 @@ export async function DELETE(req: NextRequest) {
     // 파일 삭제
     const allFiles: string[] = []
     user.uploads.forEach((u) => allFiles.push(u.fileUrl))
-    user.jobs.forEach((j) => j.images.forEach((i) => allFiles.push(i.imageUrl)))
+    user.jobs.forEach((j) => j.images.forEach((i) => {
+      if (i.imageUrl) allFiles.push(i.imageUrl)
+    }))
 
     for (const fileUrl of allFiles) {
       let fp: string | null = null

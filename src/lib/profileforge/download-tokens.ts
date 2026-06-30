@@ -82,6 +82,21 @@ export async function claimDownloadToken(token: string) {
   })
 }
 
+export async function peekDownloadToken(token: string) {
+  const tokenHash = hashDownloadToken(token)
+  return db.downloadToken.findUnique({
+    where: { tokenHash },
+    include: {
+      job: {
+        include: {
+          images: { where: { status: { in: ['available', 'uploaded_r2'] } }, orderBy: { createdAt: 'asc' } },
+        },
+      },
+      generatedImage: true,
+    },
+  })
+}
+
 export async function expireDownloadTokens(now = new Date()) {
   return db.downloadToken.updateMany({
     where: { status: 'active', expiresAt: { lte: now } },
