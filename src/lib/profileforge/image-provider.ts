@@ -216,6 +216,7 @@ async function runCodexImagen(opts: {
   remoteInput: string
   remoteOutput: string
   timeoutSeconds: number
+  model: string
   timeoutMs: number
 }) {
   const command = buildCodexImagenCommand({
@@ -223,7 +224,7 @@ async function runCodexImagen(opts: {
     promptPath: opts.remotePrompt,
     inputPath: opts.remoteInput,
     outputPath: opts.remoteOutput,
-    model: DEFAULT_CODEX_IMAGEN_MODEL,
+    model: opts.model,
     timeoutSeconds: opts.timeoutSeconds,
   })
 
@@ -288,6 +289,7 @@ export async function generateProfileImage(
       remoteInput,
       remoteOutput,
       timeoutSeconds,
+      model,
       timeoutMs,
     })
     const parsed = parseCodexImagenJson(stdout)
@@ -303,7 +305,7 @@ export async function generateProfileImage(
     return {
       fileUrl: `/api/profileforge/image/${localOutputName}`,
       filePath: localOutputPath,
-      provider: 'codex-imagen-ssh',
+      provider: 'image-adapter',
       model: parsed.model || model,
       remoteSha256: remoteImage?.sha256,
       revisedPrompt: remoteImage?.revised_prompt ?? null,
