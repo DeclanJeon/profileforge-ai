@@ -156,7 +156,7 @@ export function Landing() {
               >
                 <div className="aspect-[4/5] relative bg-muted">
                   <img
-                    src={`/concept-thumbnails/${concept.id}.png`}
+                    src={`/concept-thumbnails/${concept.id}.webp`}
                     alt={`${concept.name} concept preview`}
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading={idx < 4 ? 'eager' : 'lazy'}

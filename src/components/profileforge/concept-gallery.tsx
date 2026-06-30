@@ -33,7 +33,7 @@ const RISK_LABEL: Record<string, { label: string; variant: 'default' | 'secondar
 
 
 function getConceptThumbnail(concept: Concept) {
-  return `/concept-thumbnails/${concept.id}.png`
+  return `/concept-thumbnails/${concept.id}.webp`
 }
 
 export function ConceptGallery() {

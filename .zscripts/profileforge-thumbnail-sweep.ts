@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import { promises as fs } from 'fs'
 import path from 'path'
+import sharp from 'sharp'
 import { CONCEPTS } from '../src/lib/profileforge/concepts'
 
 const HOST = process.env.PROFILEFORGE_CODEX_IMAGEN_HOST || 'ponslink'
@@ -125,7 +126,7 @@ async function main() {
   for (let offset = 0; offset < selected.length; offset += 1) {
     const concept = selected[offset]
     const index = START + offset + 1
-    const outputPath = path.join(OUT_DIR, `${concept.id}.png`)
+    const outputPath = path.join(OUT_DIR, `${concept.id}.webp`)
     const startedAt = new Date().toISOString()
 
     if (!FORCE) {
@@ -139,7 +140,7 @@ async function main() {
           name: concept.name,
           category: concept.category,
           outputPath,
-          fileUrl: `/concept-thumbnails/${concept.id}.png`,
+          fileUrl: `/concept-thumbnails/${concept.id}.webp`,
           status: 'skipped',
           model: MODEL,
           startedAt,
@@ -154,6 +155,7 @@ async function main() {
     const remoteDir = `/tmp/profileforge-thumbnail-${Date.now()}-${concept.id}`
     const remotePrompt = `${remoteDir}/prompt.txt`
     const remoteOutput = `${remoteDir}/${concept.id}.png`
+    const localRawOutput = path.join(OUT_DIR, `${concept.id}.raw.png`)
     const timeoutMs = Math.max(30, TIMEOUT_SECONDS) * 1000
     try {
       const prompt = thumbnailPrompt(concept)
@@ -163,7 +165,14 @@ async function main() {
         `${BIN} --prompt-file ${shellQuote(remotePrompt)} --output ${shellQuote(remoteOutput)} --model ${shellQuote(MODEL)} --timeout ${TIMEOUT_SECONDS} --json --quiet`,
       ].join('\n')
       await runShell(HOST, remoteScript, timeoutMs + 15_000)
-      await copyRemoteToLocal(HOST, remoteOutput, outputPath, timeoutMs)
+      await copyRemoteToLocal(HOST, remoteOutput, localRawOutput, timeoutMs)
+      const rawImage = await fs.readFile(localRawOutput)
+      await sharp(rawImage)
+        .rotate()
+        .resize({ width: 640, height: 800, fit: 'cover', position: 'attention' })
+        .webp({ quality: 78, effort: 6 })
+        .toFile(outputPath)
+      await fs.rm(localRawOutput, { force: true })
       succeeded += 1
       manifest.entries = manifest.entries.filter((entry) => entry.conceptId !== concept.id)
       manifest.entries.push({
@@ -171,14 +180,14 @@ async function main() {
         name: concept.name,
         category: concept.category,
         outputPath,
-        fileUrl: `/concept-thumbnails/${concept.id}.png`,
+        fileUrl: `/concept-thumbnails/${concept.id}.webp`,
         status: 'ok',
         model: MODEL,
         startedAt,
         completedAt: new Date().toISOString(),
       })
       await writeManifest(manifest)
-      console.log(`OK ${index}/${CONCEPTS.length} ${concept.id} /concept-thumbnails/${concept.id}.png`)
+      console.log(`OK ${index}/${CONCEPTS.length} ${concept.id} /concept-thumbnails/${concept.id}.webp`)
     } catch (error) {
       failed += 1
       const message = error instanceof Error ? error.message : String(error)
@@ -197,6 +206,7 @@ async function main() {
       console.log(`FAIL ${index}/${CONCEPTS.length} ${concept.id} ${message}`)
     } finally {
       await runShell(HOST, `rm -rf ${shellQuote(remoteDir)}`, 15_000).catch(() => undefined)
+      await fs.rm(localRawOutput, { force: true }).catch(() => undefined)
     }
   }
 
