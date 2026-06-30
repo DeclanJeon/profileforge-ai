@@ -1,5 +1,6 @@
 'use client'
 
+import { signIn, useSession } from 'next-auth/react'
 import { useProfileStore } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -30,7 +31,7 @@ import {
 import { CustomizeOptions, buildPrompts } from '@/lib/profileforge/prompt-builder'
 import { CATEGORY_LABELS } from '@/lib/profileforge/concepts'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const ASPECT_OPTIONS: { value: CustomizeOptions['aspectRatio']; label: string; desc: string }[] = [
   { value: '1:1', label: '1:1', desc: 'SNS 프로필' },
@@ -48,8 +49,13 @@ const SKIN_OPTIONS: { value: CustomizeOptions['skinRetouch']; label: string; des
 const RESULT_COUNT_OPTIONS = [1, 2, 4]
 
 export function CustomizeStep() {
-  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, uploads, contactEmail, setContactEmail } = useProfileStore()
+  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, uploads, setContactEmail } = useProfileStore()
+  const { data: session, status } = useSession()
+  const sessionEmail = session?.user?.email || ''
   const [showPromptPreview, setShowPromptPreview] = useState(false)
+  useEffect(() => {
+    if (sessionEmail) setContactEmail(sessionEmail)
+  }, [sessionEmail, setContactEmail])
 
   if (!selectedConcept) {
     return (
@@ -65,7 +71,8 @@ export function CustomizeStep() {
   const built = buildPrompts(selectedConcept, customize)
   const totalCost = selectedConcept.creditCost * customize.resultCount
 
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sessionEmail)
+  const isSignedIn = status === 'authenticated' && emailValid
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -341,22 +348,24 @@ export function CustomizeStep() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2"><Mail className="w-4 h-4" />결과를 받을 이메일</CardTitle>
           <CardDescription className="text-xs">
-            생성은 대기열에서 처리됩니다. 브라우저를 닫아도 완료되면 다운로드 링크를 보내드립니다.
+            Google 계정 이메일로만 결과 다운로드 링크를 발송합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Input
-            type="email"
-            value={contactEmail}
-            onChange={(event) => setContactEmail(event.target.value)}
-            placeholder="user@example.com"
-            autoComplete="email"
-          />
+          {isSignedIn ? (
+            <div className="rounded-lg border bg-background px-3 py-2 text-sm font-medium">
+              {sessionEmail}
+            </div>
+          ) : (
+            <Button type="button" onClick={() => signIn('google')} className="w-full bg-gradient-to-r from-fuchsia-600 to-rose-500">
+              Google로 로그인하고 이메일 연결
+            </Button>
+          )}
           <p className="text-[11px] text-muted-foreground">
-            다운로드 링크는 24시간 동안 유효하며, 생성 결과는 만료 후 삭제됩니다.
+            다운로드 링크는 로그인한 Google 이메일로 발송되며 24시간 동안 유효합니다.
           </p>
-          {contactEmail && !emailValid && (
-            <p className="text-[11px] text-rose-600">올바른 이메일 주소를 입력해주세요.</p>
+          {!isSignedIn && (
+            <p className="text-[11px] text-rose-600">생성하려면 Google 로그인이 필요합니다.</p>
           )}
         </CardContent>
       </Card>
@@ -380,7 +389,7 @@ export function CustomizeStep() {
             </Button>
             <Button
               size="sm"
-              disabled={totalCost > useProfileStore.getState().credits || uploads.length === 0 || !emailValid}
+              disabled={totalCost > useProfileStore.getState().credits || uploads.length === 0 || !isSignedIn}
               onClick={() => {
                 setStep('generate')
               }}
@@ -397,9 +406,9 @@ export function CustomizeStep() {
             크레딧이 부족합니다. 결과 수를 줄이거나 나중에 다시 시도해주세요.
           </p>
         )}
-        {!emailValid && (
+        {!isSignedIn && (
           <p className="text-[10px] text-rose-600 mt-2">
-            생성 결과를 받을 이메일을 입력해주세요.
+            생성 결과를 받을 Google 계정으로 로그인해주세요.
           </p>
         )}
       </div>

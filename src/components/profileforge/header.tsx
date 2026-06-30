@@ -1,11 +1,14 @@
 'use client'
 
 import { useProfileStore } from '@/store/profile-store'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { Shield, Coins, RotateCcw } from 'lucide-react'
+import { LogIn, LogOut, Shield, Coins, RotateCcw } from 'lucide-react'
 
 export function Header() {
   const { credits, setStep, resetAll, setPolicyOpen } = useProfileStore()
+  const { data: session, status } = useSession()
+  const userEmail = session?.user?.email
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -34,6 +37,23 @@ export function Header() {
             <span className="text-[10px] opacity-70">크레딧</span>
           </div>
 
+          {userEmail ? (
+            <Button variant="outline" size="sm" onClick={() => signOut()} className="hidden sm:flex max-w-[220px]">
+              <span className="truncate text-xs">{userEmail}</span>
+              <LogOut className="w-3.5 h-3.5 ml-1.5 shrink-0" />
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => signIn('google')}
+              disabled={status === 'loading'}
+              className="bg-gradient-to-r from-fuchsia-600 to-rose-500"
+            >
+              <LogIn className="w-3.5 h-3.5 mr-1.5" />
+              Google 로그인
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

@@ -1,5 +1,6 @@
 'use client'
 
+import { signIn, useSession } from 'next-auth/react'
 import { useProfileStore, UploadedFile } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -43,6 +44,7 @@ export function UploadStep() {
     credits,
   } = useProfileStore()
   const { toast } = useToast()
+  const { status } = useSession()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -59,6 +61,15 @@ export function UploadStep() {
 
   const handleFiles = useCallback(
     async (fileList: FileList | File[]) => {
+      if (status !== 'authenticated') {
+        toast({
+          title: 'Google 로그인이 필요합니다',
+          description: '결과 다운로드 링크를 받을 Google 계정으로 먼저 로그인해주세요.',
+          variant: 'destructive',
+        })
+        void signIn('google')
+        return
+      }
       const files = Array.from(fileList)
       if (uploads.length + files.length > MAX_FILES) {
         toast({
@@ -143,7 +154,7 @@ export function UploadStep() {
         setUploading(false)
       }
     },
-    [uploads.length, addUpload, updateUpload, toast],
+    [uploads.length, addUpload, updateUpload, toast, status],
   )
 
   const onDrop = useCallback(
@@ -169,6 +180,18 @@ export function UploadStep() {
           얼굴이 잘 보이는 정면 사진 1~5장을 업로드하세요. JPG, PNG, WebP · 파일당 20MB 이하.
         </p>
       </div>
+      {status !== 'authenticated' && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Google 로그인이 필요합니다</AlertTitle>
+          <AlertDescription className="text-xs">
+            생성 결과 다운로드 링크는 로그인한 Google 이메일로 발송됩니다. 업로드 전에 로그인해주세요.
+          </AlertDescription>
+          <Button type="button" size="sm" className="mt-3 bg-gradient-to-r from-fuchsia-600 to-rose-500" onClick={() => signIn('google')}>
+            Google로 로그인
+          </Button>
+        </Alert>
+      )}
 
       {/* Consent */}
       <Card className="border-2 border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">

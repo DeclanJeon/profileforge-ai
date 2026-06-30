@@ -3,21 +3,21 @@
  * - 세션 기반 사용자의 모든 업로드/결과/작업 삭제
  * - 파일 시스템의 이미지도 함께 삭제
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
 import path from 'path'
 import { promises as fs } from 'fs'
 import { generatedImageUrlToLocalPath } from '@/lib/profileforge/image-provider'
+import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE() {
   try {
-    const url = new URL(req.url)
-    const sessionId = url.searchParams.get('sessionId')
-    if (!sessionId) {
-      return NextResponse.json({ error: 'sessionId 필요' }, { status: 400 })
+    const session = await getServerSession(authOptions)
+    const userEmail = normalizeAuthEmail(session?.user?.email)
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
     }
-
-    const userEmail = `${sessionId}@profileforge.local`
     const user = await db.user.findUnique({
       where: { email: userEmail },
       include: {

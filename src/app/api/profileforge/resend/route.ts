@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
 import { enqueueResendEmail, sendPendingEmails } from '@/lib/profileforge/email'
-import { normalizeEmail } from '@/lib/profileforge/queue'
+import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
-}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({})) as { jobId?: string; email?: string }
-    if (!body.jobId || !body.email || !isValidEmail(body.email)) {
-      return NextResponse.json({ error: '작업 ID와 올바른 이메일 주소가 필요합니다.' }, { status: 400 })
+    const body = await req.json().catch(() => ({})) as { jobId?: string }
+    const session = await getServerSession(authOptions)
+    const email = normalizeAuthEmail(session?.user?.email)
+    if (!body.jobId || !email) {
+      return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
     }
-
-    const email = normalizeEmail(body.email)
     const job = await db.generationJob.findUnique({
       where: { id: body.jobId },
       include: { images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, take: 1 } },

@@ -1,26 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { promises as fs } from 'fs'
 import { db } from '@/lib/db'
 import { createDownloadUrl } from '@/lib/profileforge/storage'
 import { generatedImageUrlToLocalPath } from '@/lib/profileforge/image-provider'
+import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 
 const ALLOWED_SIZES = new Set(['original', '1024', '2048', 'square', 'web', 'print'])
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { size, jobId, imageId, sessionId } = body as {
+    const session = await getServerSession(authOptions)
+    const userEmail = normalizeAuthEmail(session?.user?.email)
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
+    }
+    const { size, jobId, imageId } = body as {
       size?: string
       jobId?: string
       imageId?: string
-      sessionId?: string
     }
 
-    if (!jobId || !imageId || !sessionId) {
+    if (!jobId || !imageId) {
       return NextResponse.json({ error: '다운로드할 이미지 정보가 필요합니다.' }, { status: 400 })
     }
 
-    const userEmail = `${sessionId}@profileforge.local`
 
     const image = await db.generatedImage.findFirst({
       where: {

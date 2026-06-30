@@ -5,10 +5,12 @@
  * - DB에 Upload 레코드 저장 (User upsert 포함)
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
 import { promises as fs } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
 const MAX_SIZE = 20 * 1024 * 1024
@@ -85,7 +87,11 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
-    const sessionId = (formData.get('sessionId') as string) || 'sess_anon'
+    const session = await getServerSession(authOptions)
+    const userEmail = normalizeAuthEmail(session?.user?.email)
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
+    }
 
     if (!file) {
       return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 })
@@ -121,14 +127,13 @@ export async function POST(req: NextRequest) {
       mimeType: file.type,
     })
 
-    // User upsert (세션 기반)
-    const userEmail = `${sessionId}@profileforge.local`
+    // User upsert (Google OAuth 이메일 기반)
     const user = await db.user.upsert({
       where: { email: userEmail },
-      update: {},
+      update: { name: session?.user?.name || userEmail },
       create: {
         email: userEmail,
-        name: sessionId,
+        name: session?.user?.name || userEmail,
         consentVersion: 'v1',
       },
     })

@@ -1,5 +1,6 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useProfileStore } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,9 +44,9 @@ export function GenerateStep() {
     setJobId,
     setGenerationStatus,
     sessionId,
-    contactEmail,
   } = useProfileStore()
   const { toast } = useToast()
+  const { status } = useSession()
   const [stage, setStage] = useState<Stage>('submitting')
   const [overallProgress, setOverallProgress] = useState(8)
   const [elapsedSec, setElapsedSec] = useState(0)
@@ -62,10 +63,10 @@ export function GenerateStep() {
 
 
   useEffect(() => {
-    if (startedRef.current) return
+    if (startedRef.current || status === 'loading') return
     startedRef.current = true
     void runPipeline()
-  }, [])
+  }, [status])
 
   useEffect(() => {
     const t = setInterval(() => setElapsedSec((s) => s + 1), 1000)
@@ -73,6 +74,11 @@ export function GenerateStep() {
   }, [])
 
   const runPipeline = async () => {
+    if (status !== 'authenticated') {
+      setErrorMsg('Google 로그인 후 생성할 수 있습니다.')
+      setStage('failed')
+      return
+    }
     if (!selectedConcept || !primaryUpload || !built) {
       setErrorMsg('필수 정보가 누락되었습니다.')
       setStage('failed')
@@ -93,7 +99,6 @@ export function GenerateStep() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          email: contactEmail,
           uploadId: primaryUpload.serverId,
           uploadUrl: primaryUpload.serverUrl || primaryUpload.previewUrl,
           conceptId: selectedConcept.id,

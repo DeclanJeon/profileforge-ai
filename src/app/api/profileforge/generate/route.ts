@@ -1,16 +1,17 @@
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
 import { uploadFileUrlToLocalPath } from '@/lib/profileforge/image-provider'
 import { CONCEPTS } from '@/lib/profileforge/concepts'
 import { buildPrompts, CustomizeOptions } from '@/lib/profileforge/prompt-builder'
 import { profileForgeConfig } from '@/lib/profileforge/config'
+import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 import { createDownloadUrl } from '@/lib/profileforge/storage'
 import {
   estimateQueuePosition,
   estimateWaitSeconds,
   makeGenerationIdempotencyKey,
-  normalizeEmail,
 } from '@/lib/profileforge/queue'
 
 interface GenerateRequest {
@@ -39,9 +40,6 @@ function safeSize(size: string | undefined) {
   return size && SUPPORTED_SIZES.includes(size) ? size : '1024x1024'
 }
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
-}
 
 function clampNumber(value: unknown, fallback: number, min: number, max: number) {
   const numberValue = typeof value === 'number' && Number.isFinite(value) ? value : fallback
@@ -188,8 +186,11 @@ async function getJobImages(jobId: string) {
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get('jobId')
   if (!jobId) return NextResponse.json({ error: 'jobId가 필요합니다.' }, { status: 400 })
+  const session = await getServerSession(authOptions)
+  const authEmail = normalizeAuthEmail(session?.user?.email)
+  if (!authEmail) return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
 
-  const job = await db.generationJob.findUnique({ where: { id: jobId } })
+  const job = await db.generationJob.findFirst({ where: { id: jobId, email: authEmail } })
   if (!job) return NextResponse.json({ error: '작업을 찾을 수 없습니다.' }, { status: 404 })
 
   const [images, queuePosition, estimatedWaitSeconds] = await Promise.all([
@@ -213,13 +214,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as GenerateRequest
+    const session = await getServerSession(authOptions)
+    const authEmail = normalizeAuthEmail(session?.user?.email)
+    if (!authEmail) {
+      return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
+    }
     const { sessionId, uploadId, conceptId } = body
 
     if (!sessionId || !conceptId || !uploadId) {
       return NextResponse.json({ error: '업로드 이미지와 컨셉 선택이 필요합니다.' }, { status: 400 })
-    }
-    if (!body.email || !isValidEmail(body.email)) {
-      return NextResponse.json({ error: '결과를 받을 올바른 이메일 주소를 입력해주세요.' }, { status: 400 })
     }
 
     const concept = CONCEPTS.find((item) => item.id === conceptId)
@@ -227,7 +230,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '지원하지 않는 컨셉입니다. 컨셉을 다시 선택해주세요.' }, { status: 400 })
     }
 
-    const normalizedEmail = normalizeEmail(body.email)
+    const normalizedEmail = authEmail
     const safeResultCount = Math.max(1, Math.min(profileForgeConfig.queue.maxResultCount, body.resultCount || profileForgeConfig.queue.defaultResultCount))
     const customizeOptions: CustomizeOptions = {
       creativity: clampNumber(body.creativity, concept.defaultCreativity, 0, 100),
@@ -241,11 +244,10 @@ export async function POST(req: NextRequest) {
     const safeSizeStr = safeSize(body.size || builtPrompts.size)
     const ip = clientIp(req)
     const bucketStart = dayBucket()
-    const userEmail = `${sessionId}@profileforge.local`
     const user = await db.user.upsert({
-      where: { email: userEmail },
-      update: {},
-      create: { email: userEmail, name: sessionId, consentVersion: 'v1' },
+      where: { email: normalizedEmail },
+      update: { name: session?.user?.name || normalizedEmail },
+      create: { email: normalizedEmail, name: session?.user?.name || normalizedEmail, consentVersion: 'v1' },
     })
 
     const upload = await db.upload.findFirst({

@@ -1,5 +1,6 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useProfileStore, GeneratedResult } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -53,12 +54,12 @@ export function ResultsStep() {
     setStep,
     setResultFeedback,
     openEditor,
-    sessionId,
     jobId,
-    contactEmail,
     generationStatus,
   } = useProfileStore()
   const { toast } = useToast()
+  const { data: session } = useSession()
+  const userEmail = session?.user?.email || ''
   const [zoomId, setZoomId] = useState<string | null>(null)
   const [resendingEmail, setResendingEmail] = useState(false)
 
@@ -89,7 +90,6 @@ export function ResultsStep() {
           size,
           jobId,
           imageId: r.id,
-          sessionId,
         }),
       })
       if (!res.ok) throw new Error('다운로드 실패')
@@ -120,7 +120,7 @@ export function ResultsStep() {
   const handleDelete = async () => {
     if (!confirm('업로드 원본과 생성 결과 모두 삭제하시겠습니까?')) return
     try {
-      await fetch(`/api/profileforge/delete?sessionId=${sessionId}`, { method: 'DELETE' })
+      await fetch('/api/profileforge/delete', { method: 'DELETE' })
       toast({ title: '삭제 완료', description: '모든 데이터가 삭제되었습니다.' })
       useProfileStore.getState().resetAll()
       setStep('landing')
@@ -130,13 +130,13 @@ export function ResultsStep() {
   }
 
   const handleResendEmail = async () => {
-    if (!jobId || !contactEmail) return
+    if (!jobId || !userEmail) return
     setResendingEmail(true)
     try {
       const res = await fetch('/api/profileforge/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, email: contactEmail }),
+        body: JSON.stringify({ jobId }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || '이메일 재발송 실패')
@@ -198,12 +198,12 @@ export function ResultsStep() {
         <AlertTitle className="text-sm">다운로드 링크 이메일 발송</AlertTitle>
         <AlertDescription className="text-xs space-y-2">
           <p>
-            결과 다운로드 링크는 {contactEmail || '입력한 이메일'}로 발송됩니다. 브라우저를 닫아도 이메일 링크로 다시 받을 수 있습니다.
+            결과 다운로드 링크는 {userEmail || '로그인한 Google 이메일'}로 발송됩니다. 브라우저를 닫아도 이메일 링크로 다시 받을 수 있습니다.
           </p>
           <p className="text-muted-foreground">
             생성 결과는 보안 저장소에 임시 보관되며, 링크 만료 또는 정리 작업 이후 복구할 수 없습니다.
           </p>
-          {jobId && contactEmail && (
+          {jobId && userEmail && (
             <Button
               type="button"
               variant="outline"
