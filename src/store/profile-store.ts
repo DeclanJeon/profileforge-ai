@@ -53,6 +53,8 @@ interface ProfileState {
   sessionId: string
   credits: number
   deductCredits: (n: number) => void
+  contactEmail: string
+  setContactEmail: (email: string) => void
 
   // 업로드
   uploads: UploadedFile[]
@@ -129,6 +131,14 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       : 'sess_server',
   credits: 20,
   deductCredits: (n) => set({ credits: Math.max(0, get().credits - n) }),
+  contactEmail:
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('pf_contact_email') || ''
+      : '',
+  setContactEmail: (email) => {
+    if (typeof window !== 'undefined') sessionStorage.setItem('pf_contact_email', email)
+    set({ contactEmail: email })
+  },
 
   uploads: [],
   selectedUploadId: null,
@@ -214,5 +224,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       results: [],
       selectedResultId: null,
       consentAgreed: false,
+      contactEmail: '',
     }),
 }))

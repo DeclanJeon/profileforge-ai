@@ -25,6 +25,7 @@ import {
   Shirt,
   Image as ImageIcon,
   RotateCcw,
+  Mail,
 } from 'lucide-react'
 import { CustomizeOptions, buildPrompts } from '@/lib/profileforge/prompt-builder'
 import { CATEGORY_LABELS } from '@/lib/profileforge/concepts'
@@ -47,7 +48,7 @@ const SKIN_OPTIONS: { value: CustomizeOptions['skinRetouch']; label: string; des
 const RESULT_COUNT_OPTIONS = [2, 4, 6, 8]
 
 export function CustomizeStep() {
-  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, deductCredits, uploads } = useProfileStore()
+  const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, deductCredits, uploads, contactEmail, setContactEmail } = useProfileStore()
   const [showPromptPreview, setShowPromptPreview] = useState(false)
 
   if (!selectedConcept) {
@@ -64,6 +65,7 @@ export function CustomizeStep() {
   const built = buildPrompts(selectedConcept, customize)
   const totalCost = selectedConcept.creditCost * customize.resultCount
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -335,6 +337,30 @@ export function CustomizeStep() {
         </TabsContent>
       </Tabs>
 
+      <Card className="border-fuchsia-200 bg-fuchsia-50/40 dark:bg-fuchsia-950/15">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2"><Mail className="w-4 h-4" />결과를 받을 이메일</CardTitle>
+          <CardDescription className="text-xs">
+            생성은 대기열에서 처리됩니다. 브라우저를 닫아도 완료되면 다운로드 링크를 보내드립니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Input
+            type="email"
+            value={contactEmail}
+            onChange={(event) => setContactEmail(event.target.value)}
+            placeholder="user@example.com"
+            autoComplete="email"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            다운로드 링크는 24시간 동안 유효하며, 생성 결과는 만료 후 삭제됩니다.
+          </p>
+          {contactEmail && !emailValid && (
+            <p className="text-[11px] text-rose-600">올바른 이메일 주소를 입력해주세요.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Cost summary + actions */}
       <div className="sticky bottom-4 bg-background/95 backdrop-blur border rounded-xl p-3 shadow-md">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -354,7 +380,7 @@ export function CustomizeStep() {
             </Button>
             <Button
               size="sm"
-              disabled={totalCost > useProfileStore.getState().credits || uploads.length === 0}
+              disabled={totalCost > useProfileStore.getState().credits || uploads.length === 0 || !emailValid}
               onClick={() => {
                 deductCredits(totalCost)
                 setStep('generate')
@@ -362,7 +388,7 @@ export function CustomizeStep() {
               className="bg-gradient-to-r from-fuchsia-600 to-rose-500"
             >
               <Wand2 className="w-4 h-4 mr-1.5" />
-              {customize.resultCount}장 생성
+              이메일로 결과 받기
               <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </div>
@@ -370,6 +396,11 @@ export function CustomizeStep() {
         {totalCost > useProfileStore.getState().credits && (
           <p className="text-[10px] text-rose-600 mt-2">
             크레딧이 부족합니다. 결과 수를 줄이거나 나중에 다시 시도해주세요.
+          </p>
+        )}
+        {!emailValid && (
+          <p className="text-[10px] text-rose-600 mt-2">
+            생성 결과를 받을 이메일을 입력해주세요.
           </p>
         )}
       </div>

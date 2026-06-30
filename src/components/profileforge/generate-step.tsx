@@ -42,6 +42,7 @@ export function GenerateStep() {
     setResults,
     setJobId,
     sessionId,
+    contactEmail,
   } = useProfileStore()
   const { toast } = useToast()
   const [stage, setStage] = useState<Stage>('preparing')
@@ -99,6 +100,7 @@ export function GenerateStep() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
+          email: contactEmail,
           uploadId: primaryUpload.serverId,
           uploadUrl: primaryUpload.serverUrl || primaryUpload.previewUrl,
           conceptId: selectedConcept.id,
@@ -143,20 +145,20 @@ export function GenerateStep() {
           setOverallProgress(Math.min(99, 85 + data.images.length * 3))
         }
 
-        if (data.status === 'succeeded') {
+        if (data.status === 'succeeded' || data.status === 'partially_succeeded') {
           setResults(data.images || [])
           setOverallProgress(100)
           setStage('done')
           toast({
-            title: '생성 완료',
-            description: `${data.images?.length || 0}장의 프로필이 생성되었습니다.`,
+            title: data.status === 'partially_succeeded' ? '일부 생성 완료' : '생성 완료',
+            description: data.message || `${data.images?.length || 0}장의 프로필이 생성되었습니다. 이메일로 다운로드 링크를 보냈습니다.`,
           })
           setTimeout(() => setStep('results'), 600)
           return
         }
 
         if (data.status === 'failed') {
-          throw new Error(data.error || '이미지 생성에 실패했습니다.')
+          throw new Error(data.message || data.error || '이미지 생성에 실패했습니다.')
         }
 
         await new Promise((r) => setTimeout(r, 5000))
