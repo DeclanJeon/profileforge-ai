@@ -25,16 +25,28 @@ import {
   CONCEPTS,
 } from '@/lib/profileforge/concepts'
 
-const SAMPLE_TILES = [
-  { category: 'Professional', name: 'Corporate Navy', gradient: 'from-slate-700 via-slate-500 to-slate-300', emoji: '👔' },
-  { category: 'Editorial', name: 'Monochrome Noir', gradient: 'from-zinc-900 via-zinc-700 to-zinc-500', emoji: '🎬' },
-  { category: 'Creator', name: 'Neon Glow', gradient: 'from-fuchsia-600 via-purple-500 to-cyan-400', emoji: '🎮' },
-  { category: 'Fantasy', name: 'Knight', gradient: 'from-amber-700 via-yellow-600 to-stone-500', emoji: '⚔️' },
-  { category: 'Sci-Fi', name: 'Astronaut', gradient: 'from-indigo-900 via-blue-700 to-slate-400', emoji: '🚀' },
-  { category: 'Cosplay', name: 'Mage', gradient: 'from-emerald-700 via-teal-600 to-lime-400', emoji: '🧙' },
-  { category: 'Social', name: 'Coffee Shop', gradient: 'from-orange-600 via-amber-500 to-yellow-300', emoji: '☕' },
-  { category: 'Art/Avatar', name: 'Pop Art', gradient: 'from-rose-600 via-pink-500 to-yellow-400', emoji: '🎨' },
+const SAMPLE_CONCEPT_IDS = [
+  'pro-corporate-navy',
+  'social-night-market',
+  'editorial-vogue-style',
+  'cosplay-fantasy-mage',
+  'fantasy-knight',
+  'scifi-astronaut',
+  'anime-monster-partner-adventurer',
+  'wedding-full-shot-classic',
+  'sports-football-player-full-shot',
+  'idol-stage-full-shot',
+  'model-runway-full-shot',
+  'art-pop-art',
 ] as const
+
+const SAMPLE_CONCEPTS = SAMPLE_CONCEPT_IDS.map((id) => {
+  const concept = CONCEPTS.find((item) => item.id === id)
+  if (!concept) {
+    throw new Error(`Missing landing sample concept: ${id}`)
+  }
+  return concept
+})
 
 const USE_CASES = [
   { icon: '💼', title: '구직자/직장인', desc: '이력서, LinkedIn, 회사 프로필용 프로페셔널 헤드샷' },
@@ -122,7 +134,7 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Sample Gallery (gradient tiles as concept previews) */}
+      {/* Sample Gallery (real concept thumbnails) */}
       <section className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold">다양한 컨셉 미리보기</h2>
@@ -131,22 +143,33 @@ export function Landing() {
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
-          {SAMPLE_TILES.map((tile, idx) => (
+          {SAMPLE_CONCEPTS.map((concept, idx) => (
             <motion.div
-              key={tile.name}
+              key={concept.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: idx * 0.05 }}
             >
-              <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => setStep('upload')}>
-                <div className={`aspect-[4/5] bg-gradient-to-br ${tile.gradient} relative flex items-end p-4`}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                  <div className="absolute top-3 right-3 text-2xl drop-shadow">{tile.emoji}</div>
-                  <div className="relative text-white">
-                    <Badge variant="secondary" className="mb-1.5 text-[10px] h-5">
-                      {CATEGORY_LABELS[tile.category as keyof typeof CATEGORY_LABELS]}
+              <Card
+                className="overflow-hidden border-0 p-0 shadow-md hover:shadow-xl transition-all cursor-pointer group"
+                onClick={() => setStep('upload')}
+              >
+                <div className="aspect-[4/5] relative bg-muted">
+                  <img
+                    src={`/concept-thumbnails/${concept.id}.png`}
+                    alt={`${concept.name} concept preview`}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading={idx < 4 ? 'eager' : 'lazy'}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                  <div className="absolute left-3 right-3 bottom-3 text-white">
+                    <Badge variant="secondary" className="mb-1.5 text-[10px] h-5 bg-white/90 text-slate-900">
+                      {CATEGORY_LABELS[concept.category]}
                     </Badge>
-                    <p className="font-semibold text-sm">{tile.name}</p>
+                    <p className="font-semibold text-sm leading-tight">{concept.name}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-white/80">
+                      {concept.description}
+                    </p>
                   </div>
                 </div>
               </Card>
