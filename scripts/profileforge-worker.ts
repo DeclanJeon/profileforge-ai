@@ -15,15 +15,22 @@ async function tick() {
   console.log(JSON.stringify({ ok: true, workerId, maintenance, jobs, emails, at: new Date().toISOString() }))
 }
 
-try {
-  if (once) {
-    await tick()
-  } else {
-    for (;;) {
+async function main() {
+  try {
+    if (once) {
       await tick()
-      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    } else {
+      for (;;) {
+        await tick()
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      }
     }
+  } finally {
+    await db.$disconnect()
   }
-} finally {
-  await db.$disconnect()
 }
+
+main().catch((error) => {
+  console.error('[profileforge-worker] fatal', error)
+  process.exit(1)
+})
