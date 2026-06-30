@@ -2,11 +2,12 @@ import crypto from 'crypto'
 import { spawn } from 'child_process'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { profileForgeConfig } from './config'
 
-const DEFAULT_IMAGE_PROVIDER_HOST = 'ponslink'
-const DEFAULT_IMAGE_PROVIDER_BIN = '$HOME/bin/codex-imagen'
-const DEFAULT_IMAGE_PROVIDER_MODEL = 'gpt-5.5'
-const DEFAULT_TIMEOUT_SECONDS = 900
+const DEFAULT_IMAGE_PROVIDER_HOST = profileForgeConfig.imageProvider.host
+const DEFAULT_IMAGE_PROVIDER_BIN = profileForgeConfig.imageProvider.bin
+const DEFAULT_IMAGE_PROVIDER_MODEL = profileForgeConfig.imageProvider.model
+const DEFAULT_TIMEOUT_SECONDS = profileForgeConfig.imageProvider.timeoutSeconds
 
 export interface ImageGenerationInput {
   jobId: string
@@ -48,7 +49,7 @@ function publicUploadDir() {
 }
 
 export function generatedImageDir() {
-  return process.env.PROFILEFORGE_GENERATED_IMAGE_DIR || '/tmp/profileforge-generated'
+  return profileForgeConfig.retention.generatedImageDir
 }
 
 export function generatedImageUrlToLocalPath(fileUrl: string): string | null {

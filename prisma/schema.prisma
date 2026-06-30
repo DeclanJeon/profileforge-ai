@@ -44,41 +44,85 @@ model Upload {
 }
 
 model GenerationJob {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  uploadId    String
-  upload      Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-  conceptId   String
-  conceptName String
-  paramsJson  String
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadId       String
+  upload         Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  conceptId      String
+  conceptName    String
+  paramsJson     String
   positivePrompt String
   negativePrompt String
-  aspectRatio String
-  status      String   @default("pending") // pending, running, succeeded, failed
-  provider    String   @default("zai-image")
-  costCredits Int      @default(0)
-  errorMessage String?
-  createdAt   DateTime @default(now())
-  completedAt DateTime?
+  aspectRatio    String
 
-  images GeneratedImage[]
+  /// pending, queued, running, partially_succeeded, succeeded, failed, expired, cancelled
+  status         String   @default("queued")
+  queuePosition  Int?
+  queuedAt       DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failedAt       DateTime?
+  lastHeartbeatAt DateTime?
+  lockedBy       String?
+  lockExpiresAt  DateTime?
+  attemptCount   Int      @default(0)
+  maxAttempts    Int      @default(2)
+  nextRunAt      DateTime?
+  lastErrorCode  String?
+  idempotencyKey String?  @unique
+
+  email          String?
+  emailStatus    String?  // pending, sending, sent, failed
+  emailSentAt    DateTime?
+  emailError     String?
+  resultCount    Int      @default(1)
+
+  provider       String   @default("image-adapter")
+  providerJobId  String?
+  costCredits    Int      @default(0)
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  images         GeneratedImage[]
+  emailDeliveries EmailDelivery[]
+  downloadTokens DownloadToken[]
+
+  @@index([status, queuedAt])
+  @@index([status, nextRunAt])
+  @@index([userId, status])
+  @@index([email, status])
+  @@index([createdAt])
 }
 
 model GeneratedImage {
   id             String   @id @default(cuid())
   jobId          String
   job            GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  imageUrl       String
+  imageUrl       String?
+  r2Bucket       String?
+  r2Key          String?  @unique
+  mimeType       String   @default("image/png")
+  fileSize       Int?
+  width          Int?
+  height         Int?
+  /// pending, generating, generated_local, uploaded_r2, available, expired, deleted, failed
+  status         String   @default("available")
   likenessScore  Float?
   qualityScore   Float?
   selected       Boolean  @default(false)
   feedbackTag    String? // face-different, too-ai, weak-concept, too-strong, bg-only, outfit-only
   expiresAt      DateTime
+  deletedAt      DateTime?
   createdAt      DateTime @default(now())
 
   downloads Download[]
+  downloadTokens DownloadToken[]
   reports   Report[]
+
+  @@index([jobId])
+  @@index([status, expiresAt])
 }
 
 model Download {
@@ -88,6 +132,69 @@ model Download {
   format          String   @default("png")
   resolution      String
   createdAt       DateTime @default(now())
+}
+
+model DownloadToken {
+  id               String   @id @default(cuid())
+  tokenHash        String   @unique
+  jobId            String
+  job              GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  generatedImageId String?
+  generatedImage   GeneratedImage? @relation(fields: [generatedImageId], references: [id], onDelete: Cascade)
+  email            String
+  /// active, used, expired, revoked
+  status           String   @default("active")
+  expiresAt        DateTime
+  usedAt           DateTime?
+  revokedAt        DateTime?
+  downloadCount    Int      @default(0)
+  maxDownloads     Int      @default(10)
+  createdAt        DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([jobId])
+  @@index([generatedImageId])
+}
+
+model EmailDelivery {
+  id                 String   @id @default(cuid())
+  jobId              String
+  job                GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  email              String
+  recipientHash      String?
+  type               String   // generation_completed, resend_download_link
+  /// pending, sending, sent, failed
+  status             String   @default("pending")
+  provider           String?
+  providerId         String?
+  providerResponseId String?
+  errorMessage       String?
+  retryCount         Int      @default(0)
+  maxRetries         Int      @default(3)
+  nextRetryAt        DateTime?
+  bounceStatus       String?
+  idempotencyKey     String   @unique
+  sentAt             DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([jobId, type])
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@index([recipientHash, createdAt])
+}
+
+model UsageCounter {
+  id          String   @id @default(cuid())
+  scope       String
+  key         String
+  bucketStart DateTime
+  count       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([scope, key, bucketStart])
+  @@index([bucketStart])
 }
 
 model Report {

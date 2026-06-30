@@ -37,6 +37,7 @@ yarn-error.log*
 # local runtime state and private assets
 .gjc/
 db/*.db
+prisma/db/*.db
 public/uploads/*
 !public/uploads/.gitkeep
 
