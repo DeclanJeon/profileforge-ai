@@ -3,6 +3,7 @@
  * 컨셉 + 사용자 커스터마이즈 선택 → identity-lock 프롬프트 + negative prompt 구성
  */
 import { Concept } from './concepts'
+import { StyleMode, findCameraShotPreset, findFashionPreset, findHairPreset } from './style-presets'
 
 export interface CustomizeOptions {
   /** 0=보수적, 50=균형, 100=창의적 */
@@ -11,6 +12,11 @@ export interface CustomizeOptions {
   identityLockStrength: number
   aspectRatio: '1:1' | '4:5' | '3:4' | '16:9'
   resultCount: number
+  styleMode: StyleMode
+  fashionPresetId?: string
+  hairPresetId?: string
+  cameraShotId?: string
+  customStyleNote?: string
   /** 표정 오버라이드 */
   expression?: string
   /** 의상 오버라이드 */
@@ -104,6 +110,22 @@ const USE_CASE_BY_CATEGORY: Record<Concept['category'], string> = {
   Fantasy: 'fantasy profile, game avatar, roleplay portrait, and cinematic personal concept image',
   'Sci-Fi': 'sci-fi profile, futuristic avatar, cyberpunk portrait, and cinematic concept image',
   'Art/Avatar': 'stylized avatar, illustrated profile, art portrait, and community profile image',
+}
+
+
+export function sanitizeCustomStyleNote(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180)
+  if (!normalized) return undefined
+
+  const blockedDirective = /(ignore|bypass|override)\s+(previous|above|system|developer|safety|preset|identity)|negative\s+prompt|system\s+prompt|developer\s+message|different\s+person|do\s+not\s+preserve\s+identity/i
+  if (blockedDirective.test(normalized)) return undefined
+
+  return normalized
 }
 
 const DIVERSITY_INSTRUCTION =
@@ -271,6 +293,23 @@ export const buildPrompts = (
   const background = options.background?.trim() || concept.background
   const lighting = options.lighting?.trim() || concept.lighting
   const expression = options.expression?.trim() || concept.expression
+  const fashionPreset = findFashionPreset(options.fashionPresetId)
+  const hairPreset = findHairPreset(options.hairPresetId)
+  const cameraShot = findCameraShotPreset(options.cameraShotId)
+  const customStyleNote = sanitizeCustomStyleNote(options.customStyleNote)
+
+  const fashionBlock = (options.styleMode === 'fashion' || options.styleMode === 'makeover') && fashionPreset
+    ? `Fashion try-on instruction: Change only the outfit. Preserve the same face, identity, hairstyle, body shape, skin tone, and realistic lighting coherence. Replace clothing with: ${fashionPreset.prompt}. Make the outfit change visually obvious with realistic fabric folds, seams, fit, shadows, texture, and perspective. Do not change the face, hair, body proportions, hands, or background unless camera direction requires wider framing.`
+    : ''
+  const hairBlock = (options.styleMode === 'hair' || options.styleMode === 'makeover') && hairPreset
+    ? `Hairstyle try-on instruction: Change only the hairstyle. Preserve the same face, identity, facial structure, expression, skin tone, clothing, body, lighting, and background. Replace hair with: ${hairPreset.prompt}. Make the hairstyle change visually obvious with natural hairline, volume, strands, texture, color, highlights, and shadows. Do not alter the face, jawline, eyes, nose, mouth, or body.`
+    : ''
+  const cameraBlock = cameraShot
+    ? `Camera direction: ${cameraShot.prompt}. Create visible framing, pose, or camera-angle variation while preserving identity and avoiding the uploaded source pose/crop.`
+    : ''
+  const customBlock = customStyleNote
+    ? `User style note, subordinate to safety and preset instructions: ${customStyleNote}.`
+    : ''
 
   const styleLine = [outfit, background, lighting, expression]
     .filter(Boolean)
@@ -300,7 +339,11 @@ export const buildPrompts = (
     `${idLock} ${creativity}`,
     DIVERSITY_INSTRUCTION,
     THUMBNAIL_MATCH_INSTRUCTION,
-    CONCEPT_DETAIL_PROMPTS[concept.id],
+    CONCEPT_DETAIL_PROMPTS[concept.id] || concept.promptSeed,
+    fashionBlock,
+    hairBlock,
+    cameraBlock,
+    customBlock,
     ipSafety,
     `Create a ${useCase} image in the concept style: "${modelConceptName}".`,
     `Wardrobe or costume: ${outfit}.`,
@@ -328,7 +371,13 @@ export const buildPrompts = (
 
   return {
     positive,
-    negative: DEFAULT_NEGATIVE_PROMPT,
+    negative: [
+      DEFAULT_NEGATIVE_PROMPT,
+      fashionPreset?.negative,
+      hairPreset?.negative,
+      cameraShot?.negative,
+      'wig-like hair, floating hair, distorted hairline, warped fabric, melted clothing, changed body proportions, duplicated limbs, impossible anatomy, extreme motion blur',
+    ].filter(Boolean).join(', '),
     aspectRatio: options.aspectRatio,
     size: aspectToSize(options.aspectRatio),
     safetyNote,

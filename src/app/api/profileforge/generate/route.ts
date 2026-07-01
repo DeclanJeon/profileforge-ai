@@ -4,7 +4,8 @@ import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
 import { uploadFileUrlToLocalPath } from '@/lib/profileforge/image-provider'
 import { CONCEPTS } from '@/lib/profileforge/concepts'
-import { buildPrompts, CustomizeOptions } from '@/lib/profileforge/prompt-builder'
+import { ALL_STYLE_CONCEPTS, StyleMode, findCameraShotPreset, findFashionPreset, findHairPreset, isStyleMode } from '@/lib/profileforge/style-presets'
+import { buildPrompts, CustomizeOptions, sanitizeCustomStyleNote } from '@/lib/profileforge/prompt-builder'
 import { profileForgeConfig } from '@/lib/profileforge/config'
 import { authOptions, normalizeAuthEmail } from '@/lib/auth'
 import { createDownloadUrl } from '@/lib/profileforge/storage'
@@ -26,6 +27,11 @@ interface GenerateRequest {
   identityLockStrength?: number
   skinRetouch?: string
   aiLabel?: boolean
+  styleMode?: string
+  fashionPresetId?: string
+  hairPresetId?: string
+  cameraShotId?: string
+  customStyleNote?: string
 }
 
 const SUPPORTED_SIZES = ['1024x1024', '768x1344', '864x1152', '1344x768', '1152x864', '1440x720', '720x1440']
@@ -226,11 +232,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '업로드 이미지와 컨셉 선택이 필요합니다.' }, { status: 400 })
     }
 
-    const concept = CONCEPTS.find((item) => item.id === conceptId)
+    const allConcepts = [...CONCEPTS, ...ALL_STYLE_CONCEPTS]
+    const concept = allConcepts.find((item) => item.id === conceptId)
     if (!concept) {
       return NextResponse.json({ error: '지원하지 않는 컨셉입니다. 컨셉을 다시 선택해주세요.' }, { status: 400 })
     }
 
+    let styleMode: StyleMode = 'profile'
+    if (body.styleMode) {
+      if (!isStyleMode(body.styleMode)) {
+        return NextResponse.json({ error: '지원하지 않는 스타일 모드입니다.' }, { status: 400 })
+      }
+      styleMode = body.styleMode
+    }
+    const fashionPreset = findFashionPreset(body.fashionPresetId)
+    const hairPreset = findHairPreset(body.hairPresetId)
+    const cameraShot = findCameraShotPreset(body.cameraShotId)
+    const expectedStyleConceptId = styleMode === 'profile' ? null : `style-${styleMode}`
+    if (styleMode === 'profile' && concept.id.startsWith('style-')) {
+      return NextResponse.json({ error: '스타일 전용 컨셉은 스타일 모드가 필요합니다.' }, { status: 400 })
+    }
+    if (expectedStyleConceptId && concept.id !== expectedStyleConceptId) {
+      return NextResponse.json({ error: '선택한 스타일 모드와 컨셉이 일치하지 않습니다.' }, { status: 400 })
+    }
+    if (styleMode === 'profile' && (body.fashionPresetId || body.hairPresetId)) {
+      return NextResponse.json({ error: '프로필 컨셉에는 패션/헤어 프리셋을 함께 보낼 수 없습니다.' }, { status: 400 })
+    }
+    if (body.fashionPresetId && !fashionPreset) {
+      return NextResponse.json({ error: '지원하지 않는 패션 스타일입니다.' }, { status: 400 })
+    }
+    if (body.hairPresetId && !hairPreset) {
+      return NextResponse.json({ error: '지원하지 않는 헤어스타일입니다.' }, { status: 400 })
+    }
+    if (styleMode === 'fashion' && (!fashionPreset || body.hairPresetId)) {
+      return NextResponse.json({ error: '패션 변경에는 유효한 패션 스타일만 선택할 수 있습니다.' }, { status: 400 })
+    }
+    if (styleMode === 'hair' && (!hairPreset || body.fashionPresetId)) {
+      return NextResponse.json({ error: '헤어스타일 변경에는 유효한 헤어스타일만 선택할 수 있습니다.' }, { status: 400 })
+    }
+    if (styleMode === 'makeover' && (!fashionPreset || !hairPreset)) {
+      return NextResponse.json({ error: '메이크오버에는 패션과 헤어스타일 선택이 모두 필요합니다.' }, { status: 400 })
+    }
+    if (body.cameraShotId && !cameraShot) {
+      return NextResponse.json({ error: '지원하지 않는 카메라 샷입니다.' }, { status: 400 })
+    }
     const normalizedEmail = authEmail
     const safeResultCount = Math.max(1, Math.min(profileForgeConfig.queue.maxResultCount, body.resultCount || profileForgeConfig.queue.defaultResultCount))
     const customizeOptions: CustomizeOptions = {
@@ -240,6 +285,11 @@ export async function POST(req: NextRequest) {
       resultCount: safeResultCount,
       skinRetouch: safeSkinRetouch(body.skinRetouch),
       aiLabel: Boolean(body.aiLabel),
+      styleMode,
+      fashionPresetId: fashionPreset?.id,
+      hairPresetId: hairPreset?.id,
+      cameraShotId: cameraShot?.id,
+      customStyleNote: sanitizeCustomStyleNote(body.customStyleNote),
     }
     const builtPrompts = buildPrompts(concept, customizeOptions)
     const safeSizeStr = safeSize(body.size || builtPrompts.size)
@@ -279,6 +329,11 @@ export async function POST(req: NextRequest) {
       identityLockStrength: customizeOptions.identityLockStrength,
       skinRetouch: customizeOptions.skinRetouch,
       aiLabel: customizeOptions.aiLabel,
+      styleMode: customizeOptions.styleMode,
+      fashionPresetId: customizeOptions.fashionPresetId,
+      hairPresetId: customizeOptions.hairPresetId,
+      cameraShotId: customizeOptions.cameraShotId,
+      customStyleNote: customizeOptions.customStyleNote,
       positivePrompt: builtPrompts.positive,
       negativePrompt: builtPrompts.negative,
     })
@@ -321,6 +376,11 @@ export async function POST(req: NextRequest) {
             identityLockStrength: customizeOptions.identityLockStrength,
             skinRetouch: customizeOptions.skinRetouch,
             aiLabel: customizeOptions.aiLabel,
+            styleMode: customizeOptions.styleMode,
+            fashionPresetId: customizeOptions.fashionPresetId,
+            hairPresetId: customizeOptions.hairPresetId,
+            cameraShotId: customizeOptions.cameraShotId,
+            customStyleNote: customizeOptions.customStyleNote,
             aspectRatio: customizeOptions.aspectRatio,
             resultCount: safeResultCount,
             size: safeSizeStr,

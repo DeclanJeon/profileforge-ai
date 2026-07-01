@@ -20,6 +20,11 @@ export function makeGenerationIdempotencyKey(input: {
   identityLockStrength?: number
   skinRetouch?: string
   aiLabel?: boolean
+  styleMode?: string
+  fashionPresetId?: string
+  hairPresetId?: string
+  cameraShotId?: string
+  customStyleNote?: string
   positivePrompt?: string
   negativePrompt?: string
 }) {
@@ -40,6 +45,11 @@ export function makeGenerationIdempotencyKey(input: {
       String(input.identityLockStrength ?? ''),
       input.skinRetouch || '',
       input.aiLabel ? 'ai-label' : 'no-ai-label',
+      input.styleMode || '',
+      input.fashionPresetId || '',
+      input.hairPresetId || '',
+      input.cameraShotId || '',
+      input.customStyleNote || '',
       promptHash,
     ].join(':'))
     .digest('hex')
