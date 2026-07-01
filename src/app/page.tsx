@@ -1,36 +1,12 @@
-'use client'
+import type { Metadata } from 'next'
+import { ProfileForgeApp } from '@/components/profileforge/app-shell'
 
-import { useProfileStore } from '@/store/profile-store'
-import { Header } from '@/components/profileforge/header'
-import { Footer } from '@/components/profileforge/footer'
-import { Stepper } from '@/components/profileforge/stepper'
-import { Landing } from '@/components/profileforge/landing'
-import { UploadStep } from '@/components/profileforge/upload-step'
-import { ConceptGallery } from '@/components/profileforge/concept-gallery'
-import { CustomizeStep } from '@/components/profileforge/customize-step'
-import { GenerateStep } from '@/components/profileforge/generate-step'
-import { ResultsStep } from '@/components/profileforge/results-step'
-import { EditorDialog } from '@/components/profileforge/editor-dialog'
-import { PolicyDialog } from '@/components/profileforge/policy-dialog'
+export const metadata: Metadata = {
+  title: 'ProfileForge AI | 사진 한 장으로 만드는 AI 프로필 사진',
+  description: '사진 한 장으로 LinkedIn, 이력서, SNS, 판타지, 코스프레용 AI 프로필 이미지를 만들고 결과를 이메일 첨부파일로 받아보세요.',
+  alternates: { canonical: '/' },
+}
 
 export default function Home() {
-  const step = useProfileStore((s) => s.step)
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      <Stepper />
-      <main className="flex-1">
-        {step === 'landing' && <Landing />}
-        {step === 'upload' && <UploadStep />}
-        {step === 'concept' && <ConceptGallery />}
-        {step === 'customize' && <CustomizeStep />}
-        {step === 'generate' && <GenerateStep />}
-        {step === 'results' && <ResultsStep />}
-      </main>
-      <Footer />
-      <EditorDialog />
-      <PolicyDialog />
-    </div>
-  )
+  return <ProfileForgeApp initialStep="landing" />
 }

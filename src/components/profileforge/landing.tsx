@@ -1,5 +1,6 @@
 'use client'
 
+import { signIn, useSession } from 'next-auth/react'
 import { useProfileStore } from '@/store/profile-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -66,7 +67,14 @@ const FLOW = [
 
 export function Landing() {
   const { setStep, setPolicyOpen } = useProfileStore()
-
+  const { status } = useSession()
+  const startUpload = () => {
+    if (status === 'authenticated') {
+      setStep('upload')
+      return
+    }
+    void signIn('google', { callbackUrl: '/upload' })
+  }
   return (
     <div className="space-y-16 pb-8">
       {/* Hero */}
@@ -103,7 +111,7 @@ export function Landing() {
               <Button
                 size="lg"
                 className="h-12 px-7 text-base bg-gradient-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600 shadow-md"
-                onClick={() => setStep('upload')}
+                onClick={startUpload}
               >
                 <Upload className="w-4 h-4 mr-2" />
                 무료로 시작하기
@@ -152,7 +160,7 @@ export function Landing() {
             >
               <Card
                 className="overflow-hidden border-0 p-0 shadow-md hover:shadow-xl transition-all cursor-pointer group"
-                onClick={() => setStep('upload')}
+                onClick={startUpload}
               >
                 <div className="aspect-[4/5] relative bg-muted">
                   <img
@@ -236,7 +244,7 @@ export function Landing() {
               <div
                 key={cat}
                 className="aspect-square rounded-xl bg-gradient-to-br from-fuchsia-50 to-rose-50 dark:from-fuchsia-950/30 dark:to-rose-950/30 border border-fuchsia-100 dark:border-fuchsia-900 p-2 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer"
-                onClick={() => setStep('upload')}
+                onClick={startUpload}
               >
                 <span className="text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-300">{CATEGORY_LABELS[cat]}</span>
                 <span className="text-[10px] text-muted-foreground mt-1">{count}개</span>
@@ -275,7 +283,7 @@ export function Landing() {
           <Button
             size="lg"
             className="h-12 px-8 text-base bg-gradient-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600"
-            onClick={() => setStep('upload')}
+            onClick={startUpload}
           >
             <Upload className="w-4 h-4 mr-2" />
             사진 업로드하기

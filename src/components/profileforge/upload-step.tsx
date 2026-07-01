@@ -21,7 +21,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +48,11 @@ export function UploadStep() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      void signIn('google', { callbackUrl: '/upload' })
+    }
+  }, [status])
 
   const analyzeFile = (file: File): Promise<{ width: number; height: number; previewUrl: string }> => {
     return new Promise((resolve, reject) => {
@@ -171,6 +176,20 @@ export function UploadStep() {
   const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
   const canProceed =
     uploads.length > 0 && consentAgreed && uploads.some((u) => (u.qualityScore ?? 50) >= 30)
+  if (status !== 'authenticated') {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-4">
+        <Loader2 className="w-8 h-8 mx-auto animate-spin text-fuchsia-600" />
+        <div>
+          <h2 className="text-xl font-bold">Google 로그인으로 이동 중입니다</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            로그인 완료 후 얼굴 사진 업로드 페이지가 자동으로 열립니다.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -180,18 +199,6 @@ export function UploadStep() {
           얼굴이 잘 보이는 정면 사진 1~5장을 업로드하세요. JPG, PNG, WebP · 파일당 20MB 이하.
         </p>
       </div>
-      {status !== 'authenticated' && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Google 로그인이 필요합니다</AlertTitle>
-          <AlertDescription className="text-xs">
-            생성 결과 이미지는 로그인한 Google 이메일에 첨부파일로 발송됩니다. 업로드 전에 로그인해주세요.
-          </AlertDescription>
-          <Button type="button" size="sm" className="mt-3 bg-gradient-to-r from-fuchsia-600 to-rose-500" onClick={() => signIn('google')}>
-            Google로 로그인
-          </Button>
-        </Alert>
-      )}
 
       {/* Consent */}
       <Card className="border-2 border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">
