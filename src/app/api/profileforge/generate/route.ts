@@ -193,8 +193,9 @@ export async function GET(req: NextRequest) {
   const job = await db.generationJob.findFirst({ where: { id: jobId, email: authEmail } })
   if (!job) return NextResponse.json({ error: '작업을 찾을 수 없습니다.' }, { status: 404 })
 
+  const shouldExposePreviewImages = !job.email
   const [images, queuePosition, estimatedWaitSeconds] = await Promise.all([
-    getJobImages(jobId),
+    shouldExposePreviewImages ? getJobImages(jobId) : Promise.resolve([]),
     estimateQueuePosition(jobId),
     estimateWaitSeconds(jobId),
   ])
@@ -353,7 +354,7 @@ export async function POST(req: NextRequest) {
         message: publicMessage(createResult.job.status, createResult.job.errorMessage),
         queuePosition: await estimateQueuePosition(createResult.job.id),
         estimatedWaitSeconds: await estimateWaitSeconds(createResult.job.id),
-        images: await getJobImages(createResult.job.id),
+        images: createResult.job.email ? [] : await getJobImages(createResult.job.id),
       }, { status: 202 })
     }
 
