@@ -69,13 +69,20 @@ export async function assertCanCreateJob(input: { userId: string; email?: string
 
 export async function estimateQueuePosition(jobId: string) {
   const job = await db.generationJob.findUnique({ where: { id: jobId } })
-  if (!job || job.status !== 'queued') return null
-  return db.generationJob.count({
-    where: {
-      status: 'queued',
-      queuedAt: { lte: job.queuedAt ?? job.createdAt },
-    },
-  })
+  if (!job) return null
+  if (job.status === 'running') return 1
+  if (job.status !== 'queued') return null
+
+  const [runningCount, queuedPosition] = await Promise.all([
+    db.generationJob.count({ where: { status: 'running' } }),
+    db.generationJob.count({
+      where: {
+        status: 'queued',
+        queuedAt: { lte: job.queuedAt ?? job.createdAt },
+      },
+    }),
+  ])
+  return runningCount + queuedPosition
 }
 
 export async function estimateWaitSeconds(jobId: string) {
@@ -94,14 +101,14 @@ export async function estimateWaitSeconds(jobId: string) {
     where: { status: 'running' },
     select: { startedAt: true, resultCount: true },
   })
-  const averageImageSeconds = 360
+  const averageImageSeconds = profileForgeConfig.queue.averageImageSeconds
   const queuedImagesAhead = queuedAhead.reduce((sum, item) => sum + Math.max(1, item.resultCount), 0)
   const runningRemaining = running.reduce((sum, item) => {
     const startedAt = item.startedAt?.getTime() ?? Date.now()
     const elapsed = Math.max(0, (Date.now() - startedAt) / 1000)
     return sum + Math.max(60, item.resultCount * averageImageSeconds - elapsed)
   }, 0)
-  return Math.ceil(queuedImagesAhead * averageImageSeconds + runningRemaining)
+  return Math.ceil((queuedImagesAhead * averageImageSeconds + runningRemaining) / Math.max(1, profileForgeConfig.queue.concurrency))
 }
 
 export async function claimNextGenerationJob(workerId: string) {

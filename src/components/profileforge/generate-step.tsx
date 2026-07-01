@@ -207,6 +207,13 @@ export function GenerateStep() {
     setStage('submitting')
     setStep('customize')
   }
+  const etaLabel = serverEtaSeconds ? formatMinutes(serverEtaSeconds) : estimatedTime?.label
+  const queueLabel = queuePosition
+    ? stage === 'running'
+      ? '현재 생성 중'
+      : `현재 ${queuePosition}번째`
+    : null
+  const waitLabel = [queueLabel, etaLabel ? `예상 ${etaLabel}` : null].filter(Boolean).join(' · ') || '예상 계산 중'
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
@@ -246,7 +253,7 @@ export function GenerateStep() {
                 <Clock className="w-3 h-3" />
                 {elapsedSec}초 경과
               </span>
-              <span>{queuePosition ? `대기 ${queuePosition}번째` : serverEtaSeconds ? `예상 ${formatMinutes(serverEtaSeconds)}` : estimatedTime ? `예상 ${estimatedTime.label}` : '예상 계산 중'}</span>
+              <span>{waitLabel}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-3">{serverMessage}</p>
           </CardContent>
@@ -256,7 +263,7 @@ export function GenerateStep() {
       {stage !== 'failed' && stage !== 'done' && estimatedTime && (
         <Alert className="border-fuchsia-200 bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
           <Clock className="w-4 h-4 text-fuchsia-600" />
-          <AlertTitle className="text-sm">예상 대기시간: 약 {serverEtaSeconds ? formatMinutes(serverEtaSeconds) : estimatedTime.label}</AlertTitle>
+          <AlertTitle className="text-sm">{queueLabel ? `${queueLabel} · ` : ''}예상 대기시간: 약 {etaLabel || '계산 중'}</AlertTitle>
           <AlertDescription className="text-xs">
             브라우저를 닫아도 서버 대기열에서 작업이 계속 진행되고, 완료되면 입력한 이메일로 결과 이미지를 첨부해 보냅니다.
           </AlertDescription>
@@ -303,7 +310,7 @@ export function GenerateStep() {
                     </p>
                     {isActive && (
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        {stage === 'queued' && queuePosition ? `현재 대기열 ${queuePosition}번째입니다.` : serverMessage}
+                        {stage === 'queued' && queuePosition ? `현재 대기열 ${queuePosition}번째이며 예상 대기시간은 약 ${etaLabel || '계산 중'}입니다.` : serverMessage}
                       </p>
                     )}
                   </div>
