@@ -58,7 +58,7 @@ export const profileForgeConfig = {
     imageTimeoutSeconds: intEnv('PROFILEFORGE_IMAGE_TIMEOUT_SECONDS', 900, 30),
     jobTimeoutSeconds: intEnv('PROFILEFORGE_JOB_TIMEOUT_SECONDS', 3600, 60),
     staleRunningSeconds: intEnv('PROFILEFORGE_QUEUE_STALE_RUNNING_SECONDS', 5400, 60),
-    averageImageSeconds: intEnv('PROFILEFORGE_AVERAGE_IMAGE_SECONDS', 900, 30),
+    averageImageSeconds: intEnv('PROFILEFORGE_AVERAGE_IMAGE_SECONDS', 180, 30),
     workerSecret: strEnv('PROFILEFORGE_WORKER_SECRET'),
   },
 

@@ -111,7 +111,7 @@ Open `http://localhost:3000`.
 bun run build
 ```
 
-The build script copies static assets, public assets, and cleanup scripts into `.next/standalone` for deployment.
+The build script copies static assets, public assets, worker scripts, cleanup scripts, and runtime source files into `.next/standalone` for deployment, then bundles the ProfileForge worker as Node-compatible JavaScript. `bun run start` runs a Node supervisor that starts both the Next.js server and the generation worker so queued production jobs are processed continuously.
 
 ## Environment variables
 
@@ -121,6 +121,7 @@ The build script copies static assets, public assets, and cleanup scripts into `
 | `PROFILEFORGE_IMAGE_PROVIDER_HOST` | SSH host for the image-generation adapter | `ponslink` |
 | `PROFILEFORGE_IMAGE_PROVIDER_BIN` | Image-generation adapter executable path | `$HOME/bin/image-adapter` |
 | `PROFILEFORGE_IMAGE_PROVIDER_TIMEOUT_SECONDS` | Generation timeout | `900` |
+| `PROFILEFORGE_AVERAGE_IMAGE_SECONDS` | Queue ETA estimate per image | `180` |
 | `PROFILEFORGE_GENERATED_IMAGE_DIR` | Ephemeral result directory | `/tmp/profileforge-generated` |
 | `PROFILEFORGE_GENERATED_IMAGE_TTL_SECONDS` | Generated result TTL | `600` |
 | `PROFILEFORGE_UPLOAD_TTL_SECONDS` | Source upload TTL | `1800` |
