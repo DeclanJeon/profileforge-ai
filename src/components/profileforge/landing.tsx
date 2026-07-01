@@ -61,7 +61,7 @@ const FLOW = [
   { icon: Upload, title: '1. 업로드', desc: '얼굴이 잘 보이는 사진 1~5장 드래그 앤 드롭' },
   { icon: Wand2, title: '2. 컨셉 선택', desc: '9개 카테고리 50+ 컨셉 중 선택' },
   { icon: Sparkles, title: '3. 자동 생성', desc: '기본 1장, 필요하면 최대 4장까지 생성' },
-  { icon: Download, title: '4. 다운로드', desc: '크롭/보정 후 LinkedIn·이력서 비율로 저장' },
+  { icon: Download, title: '4. 이메일 수령', desc: '완료 후 결과 이미지를 첨부파일로 저장' },
 ]
 
 export function Landing() {
@@ -252,7 +252,7 @@ export function Landing() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <TrustItem icon={Lock} title="정체성 보존" desc="identity-lock 프롬프트로 원본 인물을 그대로" />
-              <TrustItem icon={Clock} title="24시간 다운로드" desc="링크 만료 후 결과 삭제, 즉시 삭제도 가능" />
+              <TrustItem icon={Clock} title="이메일 첨부 제공" desc="완료 후 결과 이미지를 첨부파일로 발송" />
               <TrustItem icon={Users} title="본인 확인" desc="본인 또는 권한 있는 인물 사진만 업로드" />
               <TrustItem icon={Zap} title="대기열 처리" desc="브라우저를 닫아도 완료 후 이메일 발송" />
             </div>
