@@ -59,10 +59,10 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/logo.svg',
-        width: 512,
-        height: 512,
-        alt: 'ProfileForge AI logo',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'ProfileForge AI - 사진 한 장으로 AI 프로필 완성',
       },
     ],
   },
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ProfileForge AI - AI 프로필 사진 생성기',
     description: '사진 한 장으로 다양한 AI 프로필 이미지를 만들고 이메일 첨부파일로 받으세요.',
-    images: ['/logo.svg'],
+    images: ['/og-image.png'],
   },
   other: {
     'geo.region': 'KR',
