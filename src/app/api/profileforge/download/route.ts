@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': mime,
         'Content-Disposition': `attachment; filename="profileforge-${safeSize}.${extension}"`,

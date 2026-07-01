@@ -1,8 +1,11 @@
 import crypto from 'crypto'
+import { promises as fs } from 'fs'
+import path from 'path'
 import nodemailer from 'nodemailer'
 import { db } from '@/lib/db'
 import { isEmailConfigured, profileForgeConfig } from './config'
-import { issueDownloadToken } from './download-tokens'
+import { createDownloadUrl } from './storage'
+import { generatedImageDir, generatedImageUrlToLocalPath } from './image-provider'
 
 export function maskEmail(email: string) {
   const [local, domain] = email.split('@')
@@ -12,10 +15,6 @@ export function maskEmail(email: string) {
 
 export function hashEmail(email: string) {
   return crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex')
-}
-
-export function buildDownloadLink(token: string) {
-  return `${profileForgeConfig.email.downloadBaseUrl}/${encodeURIComponent(token)}`
 }
 
 function escapeHtml(value: string) {
@@ -31,7 +30,6 @@ function escapeHtml(value: string) {
 export async function enqueueCompletionEmail(input: {
   jobId: string
   email: string
-  token: string
   conceptName: string
 }) {
   const recipientHash = hashEmail(input.email)
@@ -104,9 +102,72 @@ export async function enqueueResendEmail(input: {
   return { status: 'queued' as const, retryAfterSeconds: 0 }
 }
 
-function completionEmailHtml(input: { conceptName: string; downloadLink: string }) {
+type EmailAttachment = {
+  filename: string
+  content: Buffer
+  contentType: string
+}
+
+function imageExtension(mimeType: string) {
+  if (mimeType.includes('jpeg')) return 'jpg'
+  if (mimeType.includes('webp')) return 'webp'
+  return 'png'
+}
+
+async function loadImageAttachment(image: {
+  id: string
+  imageUrl?: string | null
+  r2Bucket?: string | null
+  r2Key?: string | null
+  mimeType?: string | null
+}, index: number): Promise<EmailAttachment> {
+  const contentType = image.mimeType || 'image/png'
+  const filename = `profileforge-${index + 1}.${imageExtension(contentType)}`
+
+  let localPath: string | null = null
+  if (image.r2Bucket === 'local' && image.r2Key) {
+    const fileName = path.basename(image.r2Key)
+    if (fileName && fileName !== '.' && fileName !== '..') {
+      localPath = path.join(generatedImageDir(), fileName)
+    }
+  }
+  if (!localPath && image.imageUrl) {
+    localPath = generatedImageUrlToLocalPath(image.imageUrl)
+  }
+
+  if (localPath) {
+    return { filename, content: await fs.readFile(localPath), contentType }
+  }
+
+  const downloadUrl = await createDownloadUrl({ bucket: image.r2Bucket, key: image.r2Key, imageUrl: image.imageUrl })
+  if (downloadUrl.startsWith('/')) {
+    const filePath = generatedImageUrlToLocalPath(downloadUrl)
+    if (!filePath) throw new Error('Unsupported local image path for email attachment')
+    return { filename, content: await fs.readFile(filePath), contentType }
+  }
+
+  const response = await fetch(downloadUrl)
+  if (!response.ok) throw new Error(`Failed to fetch image attachment: ${response.status}`)
+  return {
+    filename,
+    content: Buffer.from(await response.arrayBuffer()),
+    contentType: response.headers.get('content-type') || contentType,
+  }
+}
+
+async function loadImageAttachments(images: Array<{
+  id: string
+  imageUrl?: string | null
+  r2Bucket?: string | null
+  r2Key?: string | null
+  mimeType?: string | null
+}>) {
+  return Promise.all(images.map((image, index) => loadImageAttachment(image, index)))
+}
+
+function completionEmailHtml(input: { conceptName: string; attachmentCount: number }) {
   const conceptName = escapeHtml(input.conceptName)
-  const downloadLink = escapeHtml(input.downloadLink)
+  const attachmentLabel = input.attachmentCount > 1 ? `${input.attachmentCount}장` : '1장'
 
   return `
     <!doctype html>
@@ -124,102 +185,50 @@ function completionEmailHtml(input: { conceptName: string; downloadLink: string 
             <td align="center">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,0.14);border:1px solid #f1e7f3;">
                 <tr>
-                  <td style="padding:0;background:#ffffff;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <td style="background:linear-gradient(135deg,#c026d3 0%,#f43f5e 52%,#f97316 100%);padding:34px 40px 44px;text-align:center;">
+                    <div style="display:inline-block;width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,0.94);vertical-align:middle;box-shadow:0 10px 24px rgba(0,0,0,0.16);">
+                      <div style="font-weight:900;font-size:25px;line-height:42px;color:#d946ef;letter-spacing:-2px;">PF</div>
+                    </div>
+                    <div style="display:inline-block;margin-left:12px;vertical-align:middle;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.02em;">ProfileForge AI</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:42px 40px 20px;text-align:center;">
+                    <div style="display:inline-block;padding:7px 13px;border-radius:999px;background:#fdf2f8;border:1px solid #fbcfe8;color:#be185d;font-size:12px;font-weight:700;letter-spacing:-0.01em;">AI profile generation complete</div>
+                    <h1 style="margin:18px 0 10px;color:#0f172a;font-size:36px;line-height:1.18;font-weight:900;letter-spacing:-0.055em;">프로필 생성이<br />완료되었습니다</h1>
+                    <p style="margin:0 auto;max-width:430px;color:#64748b;font-size:15px;line-height:1.7;">요청하신 컨셉의 프로필 이미지 ${attachmentLabel}을 이 이메일에 바로 첨부했습니다. 별도 다운로드 링크나 외부 저장소를 거치지 않습니다.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:18px 40px 4px;">
+                    <div style="display:inline-block;padding:10px 18px;border-radius:999px;background:#faf5ff;color:#7e22ce;border:1px solid #e9d5ff;font-size:14px;font-weight:800;">컨셉: ${conceptName}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px 40px 10px;">
+                    <div style="display:block;text-align:center;background:linear-gradient(135deg,#c026d3 0%,#f43f5e 48%,#f97316 100%);color:#ffffff;border-radius:18px;padding:18px 22px;font-size:18px;font-weight:900;letter-spacing:-0.025em;box-shadow:0 16px 30px rgba(244,63,94,0.28);">첨부파일에서 프로필 이미지를 확인하세요</div>
+                    <p style="margin:14px 0 0;text-align:center;color:#64748b;font-size:13px;line-height:1.6;">메일 앱에서 첨부파일 다운로드가 차단되어 있으면 첨부파일 표시를 허용해주세요.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:22px 40px 34px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:20px;background:#ffffff;">
                       <tr>
-                        <td style="background:linear-gradient(135deg,#c026d3 0%,#f43f5e 52%,#f97316 100%);padding:34px 40px 54px 40px;text-align:center;border-bottom-left-radius:50% 18px;border-bottom-right-radius:50% 18px;">
-                          <div style="display:inline-block;width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,0.94);vertical-align:middle;box-shadow:0 10px 24px rgba(0,0,0,0.16);">
-                            <div style="font-weight:900;font-size:25px;line-height:42px;color:#d946ef;letter-spacing:-2px;">PF</div>
-                          </div>
-                          <div style="display:inline-block;margin-left:12px;vertical-align:middle;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.02em;">ProfileForge AI</div>
+                        <td style="padding:20px 22px;border-bottom:1px solid #eef2f7;">
+                          <div style="font-size:15px;font-weight:850;color:#0f172a;margin-bottom:5px;">개인정보 보호</div>
+                          <div style="font-size:13px;line-height:1.6;color:#64748b;">생성 결과는 이메일 첨부 전송에 사용되며, 운영 서버/R2 다운로드 링크 제공을 전제로 보관하지 않습니다.</div>
                         </td>
                       </tr>
-                    </table>
-
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="padding:42px 40px 20px;text-align:center;">
-                          <div style="display:inline-block;padding:7px 13px;border-radius:999px;background:#fdf2f8;border:1px solid #fbcfe8;color:#be185d;font-size:12px;font-weight:700;letter-spacing:-0.01em;">AI profile generation complete</div>
-                          <h1 style="margin:18px 0 10px;color:#0f172a;font-size:36px;line-height:1.18;font-weight:900;letter-spacing:-0.055em;">프로필 생성이<br />완료되었습니다</h1>
-                          <p style="margin:0 auto;max-width:430px;color:#64748b;font-size:15px;line-height:1.7;">요청하신 컨셉의 프로필 이미지가 준비되었습니다. 아래 버튼으로 안전하게 다운로드하세요.</p>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td style="padding:12px 40px 8px;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:24px;background:linear-gradient(135deg,#f8fafc 0%,#fff1f2 52%,#fff7ed 100%);border:1px solid #f1e7f3;box-shadow:0 16px 36px rgba(15,23,42,0.08);">
-                            <tr>
-                              <td style="padding:28px;text-align:center;">
-                                <div style="width:100%;max-width:410px;margin:0 auto;border-radius:22px;background:linear-gradient(135deg,#111827 0%,#334155 48%,#f97316 100%);padding:1px;">
-                                  <div style="border-radius:21px;background:#ffffff;padding:26px 22px;">
-                                    <div style="width:104px;height:104px;margin:0 auto 18px;border-radius:32px;background:linear-gradient(135deg,#c026d3,#f43f5e,#f97316);box-shadow:0 16px 28px rgba(244,63,94,0.28);">
-                                      <div style="font-size:42px;line-height:104px;font-weight:900;color:#ffffff;letter-spacing:-0.08em;">PF</div>
-                                    </div>
-                                    <div style="color:#0f172a;font-size:21px;font-weight:850;letter-spacing:-0.035em;">프리미엄 프로필 패키지</div>
-                                    <div style="margin-top:10px;color:#64748b;font-size:14px;line-height:1.6;">얼굴 정체성을 유지하면서 선택한 스타일로 렌더링된 결과입니다.</div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td align="center" style="padding:18px 40px 4px;">
-                          <div style="display:inline-block;padding:10px 18px;border-radius:999px;background:#faf5ff;color:#7e22ce;border:1px solid #e9d5ff;font-size:14px;font-weight:800;">컨셉: ${conceptName}</div>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td style="padding:24px 40px 10px;">
-                          <a href="${downloadLink}" style="display:block;text-align:center;text-decoration:none;background:linear-gradient(135deg,#c026d3 0%,#f43f5e 48%,#f97316 100%);color:#ffffff;border-radius:18px;padding:18px 22px;font-size:18px;font-weight:900;letter-spacing:-0.025em;box-shadow:0 16px 30px rgba(244,63,94,0.28);">프로필 이미지 다운로드하기</a>
-                          <p style="margin:14px 0 0;text-align:center;color:#64748b;font-size:13px;line-height:1.6;">다운로드 링크는 생성 후 <strong style="color:#be123c;">24시간</strong> 동안 유효합니다.</p>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td style="padding:22px 40px 4px;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:20px;background:#ffffff;">
-                            <tr>
-                              <td style="padding:20px 22px;border-bottom:1px solid #eef2f7;">
-                                <div style="font-size:15px;font-weight:850;color:#0f172a;margin-bottom:5px;">개인정보 보호</div>
-                                <div style="font-size:13px;line-height:1.6;color:#64748b;">업로드 원본과 생성 결과는 보관 기간이 지나면 자동 삭제되며, 만료된 이미지는 복구할 수 없습니다.</div>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style="padding:20px 22px;border-bottom:1px solid #eef2f7;">
-                                <div style="font-size:15px;font-weight:850;color:#0f172a;margin-bottom:5px;">안전한 다운로드</div>
-                                <div style="font-size:13px;line-height:1.6;color:#64748b;">이 링크는 수신자 전용이며 사용 가능 횟수와 만료 시간이 제한됩니다.</div>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style="padding:20px 22px;">
-                                <div style="font-size:15px;font-weight:850;color:#0f172a;margin-bottom:5px;">다시 생성 가능</div>
-                                <div style="font-size:13px;line-height:1.6;color:#64748b;">다른 컨셉이나 구도를 원하면 ProfileForge에서 새 작업을 요청할 수 있습니다.</div>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td style="padding:22px 40px 34px;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:18px;background:#f8fafc;border:1px solid #e5e7eb;">
-                            <tr>
-                              <td style="padding:18px 20px;">
-                                <div style="font-size:14px;font-weight:800;color:#0f172a;">버튼이 열리지 않나요?</div>
-                                <div style="margin-top:6px;font-size:12px;line-height:1.6;color:#64748b;word-break:break-all;">아래 주소를 브라우저에 복사해 붙여넣으세요.<br /><a href="${downloadLink}" style="color:#c026d3;text-decoration:underline;">${downloadLink}</a></div>
-                              </td>
-                            </tr>
-                          </table>
+                        <td style="padding:20px 22px;">
+                          <div style="font-size:15px;font-weight:850;color:#0f172a;margin-bottom:5px;">AI 결과 안내</div>
+                          <div style="font-size:13px;line-height:1.6;color:#64748b;">AI 생성 결과는 원본과 다르게 보일 수 있으니 중요 용도에는 직접 확인 후 사용하세요.</div>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-
               <div style="max-width:640px;margin:18px auto 0;text-align:center;color:#94a3b8;font-size:12px;line-height:1.7;">
                 ProfileForge AI에서 발송한 생성 완료 알림입니다.<br />
                 이 메일은 발신 전용입니다.
@@ -232,15 +241,15 @@ function completionEmailHtml(input: { conceptName: string; downloadLink: string 
   `
 }
 
-function completionEmailText(input: { conceptName: string; downloadLink: string }) {
+function completionEmailText(input: { conceptName: string; attachmentCount: number }) {
   return [
     'ProfileForge 이미지 생성이 완료되었습니다.',
     '',
     `컨셉: ${input.conceptName}`,
-    '다운로드 링크는 생성 후 24시간 동안 유효합니다.',
-    input.downloadLink,
+    `생성된 프로필 이미지 ${input.attachmentCount}장을 이 이메일에 첨부했습니다.`,
+    '별도 다운로드 링크나 외부 저장소를 거치지 않습니다.',
     '',
-    '개인정보 보호를 위해 만료된 이미지는 복구할 수 없습니다.',
+    '메일 앱에서 첨부파일 다운로드가 차단되어 있으면 첨부파일 표시를 허용해주세요.',
   ].join('\n')
 }
 
@@ -266,7 +275,7 @@ export async function sendPendingEmails(limit = 10) {
     include: {
       job: {
         include: {
-          images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'asc' }, take: 1 },
+          images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'asc' } },
         },
       },
     },
@@ -288,22 +297,14 @@ export async function sendPendingEmails(limit = 10) {
     })
     if (claimed.count !== 1) continue
 
-    let issuedTokenId: string | null = null
     try {
-      const firstImage = delivery.job.images[0]
-      if (!firstImage) throw new Error('No available image for email delivery')
-      const latestExpiry = delivery.job.images.reduce((latest, image) => image.expiresAt > latest ? image.expiresAt : latest, firstImage.expiresAt)
-      const { token, row } = await issueDownloadToken({
-        jobId: delivery.jobId,
-        email: delivery.email,
-        expiresAt: latestExpiry,
-      })
-      issuedTokenId = row.id
+      if (delivery.job.images.length === 0) throw new Error('No available image for email delivery')
+      const attachments = await loadImageAttachments(delivery.job.images)
       const result = await sendCompletionEmailNow({
         jobId: delivery.jobId,
         email: delivery.email,
-        token,
         conceptName: delivery.job.conceptName,
+        attachments,
       })
       if (!result.sent) throw new Error(result.reason)
       await db.emailDelivery.update({
@@ -317,12 +318,6 @@ export async function sendPendingEmails(limit = 10) {
       })
       sent += 1
     } catch (error) {
-      if (issuedTokenId) {
-        await db.downloadToken.update({
-          where: { id: issuedTokenId },
-          data: { status: 'revoked', revokedAt: new Date() },
-        }).catch(() => undefined)
-      }
       await db.emailDelivery.update({
         where: { id: delivery.id },
         data: {
@@ -341,12 +336,14 @@ export async function sendPendingEmails(limit = 10) {
 export async function sendCompletionEmailNow(input: {
   jobId: string
   email: string
-  token: string
   conceptName: string
+  attachments: EmailAttachment[]
 }) {
-  const downloadLink = buildDownloadLink(input.token)
-  const html = completionEmailHtml({ conceptName: input.conceptName, downloadLink })
-  const text = completionEmailText({ conceptName: input.conceptName, downloadLink })
+  if (input.attachments.length === 0) {
+    return { sent: false, reason: 'No generated image attachments are available' }
+  }
+  const html = completionEmailHtml({ conceptName: input.conceptName, attachmentCount: input.attachments.length })
+  const text = completionEmailText({ conceptName: input.conceptName, attachmentCount: input.attachments.length })
   if (!isEmailConfigured()) {
     await db.generationJob.update({
       where: { id: input.jobId },
@@ -372,6 +369,11 @@ export async function sendCompletionEmailNow(input: {
       subject: 'ProfileForge 이미지 생성이 완료되었습니다',
       html,
       text,
+      attachments: input.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content,
+        contentType: attachment.contentType,
+      })),
     })
     await db.generationJob.update({
       where: { id: input.jobId },
@@ -392,6 +394,10 @@ export async function sendCompletionEmailNow(input: {
       subject: 'ProfileForge 이미지 생성이 완료되었습니다',
       html,
       text,
+      attachments: input.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content.toString('base64'),
+      })),
     }),
   })
 

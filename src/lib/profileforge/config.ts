@@ -70,6 +70,7 @@ export const profileForgeConfig = {
   },
 
   r2: {
+    enabled: strEnv('PROFILEFORGE_ENABLE_R2_STORAGE', 'false') === 'true',
     accountId: strEnv('PROFILEFORGE_R2_ACCOUNT_ID'),
     accessKeyId: strEnv('PROFILEFORGE_R2_ACCESS_KEY_ID'),
     secretAccessKey: strEnv('PROFILEFORGE_R2_SECRET_ACCESS_KEY'),
@@ -106,6 +107,7 @@ export const profileForgeConfig = {
 
 export function isR2Configured() {
   return Boolean(
+    profileForgeConfig.r2.enabled &&
     profileForgeConfig.r2.accountId &&
       profileForgeConfig.r2.accessKeyId &&
       profileForgeConfig.r2.secretAccessKey &&

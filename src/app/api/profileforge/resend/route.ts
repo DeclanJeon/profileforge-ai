@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
     const job = await db.generationJob.findUnique({
       where: { id: body.jobId },
-      include: { images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, take: 1 } },
+      include: { images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'asc' } } },
     })
     if (!job || job.email !== email) {
       return NextResponse.json({ error: '재발송할 작업을 찾을 수 없습니다.' }, { status: 404 })
@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
       void sendPendingEmails(1).catch((error) => {
         console.error('[profileforge-resend] send failed', error)
       })
-      return NextResponse.json({ ok: true, status: queued.status, message: '다운로드 이메일 재발송을 요청했습니다.' })
+      return NextResponse.json({ ok: true, status: queued.status, message: '결과 이미지 첨부 이메일 재발송을 요청했습니다.' })
     }
 
     const message = queued.status === 'cooldown'
-      ? `이미 재발송된 링크가 있습니다. 약 ${Math.ceil(queued.retryAfterSeconds / 60)}분 후 다시 시도해주세요.`
+      ? `이미 재발송된 첨부 이메일이 있습니다. 약 ${Math.ceil(queued.retryAfterSeconds / 60)}분 후 다시 시도해주세요.`
       : '이미 이메일 재발송이 대기 중입니다.'
     return NextResponse.json({ ok: true, status: queued.status, retryAfterSeconds: queued.retryAfterSeconds, message })
   } catch (error) {

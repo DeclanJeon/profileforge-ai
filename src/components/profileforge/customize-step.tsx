@@ -348,7 +348,7 @@ export function CustomizeStep() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2"><Mail className="w-4 h-4" />결과를 받을 이메일</CardTitle>
           <CardDescription className="text-xs">
-            Google 계정 이메일로만 결과 다운로드 링크를 발송합니다.
+            Google 계정 이메일로만 결과 이미지를 첨부 발송합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -362,7 +362,7 @@ export function CustomizeStep() {
             </Button>
           )}
           <p className="text-[11px] text-muted-foreground">
-            다운로드 링크는 로그인한 Google 이메일로 발송되며 24시간 동안 유효합니다.
+            결과 이미지는 로그인한 Google 이메일에 첨부파일로 발송됩니다.
           </p>
           {!isSignedIn && (
             <p className="text-[11px] text-rose-600">생성하려면 Google 로그인이 필요합니다.</p>

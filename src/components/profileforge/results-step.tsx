@@ -142,7 +142,7 @@ export function ResultsStep() {
       if (!res.ok) throw new Error(data.error || '이메일 재발송 실패')
       toast({
         title: '이메일 재발송 요청 완료',
-        description: data.message || '다운로드 링크를 다시 보내고 있습니다.',
+        description: data.message || '결과 이미지 첨부 이메일을 다시 보내고 있습니다.',
       })
     } catch (error) {
       toast({
@@ -188,20 +188,20 @@ export function ResultsStep() {
           <AlertTriangle className="w-4 h-4 text-orange-600" />
           <AlertTitle className="text-sm">일부 결과만 생성되었습니다</AlertTitle>
           <AlertDescription className="text-xs">
-            요청한 이미지 중 {results.length}장만 성공했습니다. 실패한 이미지는 과금/다운로드 대상에서 제외되며, 이메일 링크에도 성공한 결과만 포함됩니다.
+            요청한 이미지 중 {results.length}장만 성공했습니다. 실패한 이미지는 과금/다운로드 대상에서 제외되며, 이메일에도 성공한 결과만 첨부됩니다.
           </AlertDescription>
         </Alert>
       )}
 
       <Alert className="border-fuchsia-200 bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
         <Mail className="w-4 h-4 text-fuchsia-600" />
-        <AlertTitle className="text-sm">다운로드 링크 이메일 발송</AlertTitle>
+        <AlertTitle className="text-sm">결과 이미지 첨부 이메일 발송</AlertTitle>
         <AlertDescription className="text-xs space-y-2">
           <p>
-            결과 다운로드 링크는 {userEmail || '로그인한 Google 이메일'}로 발송됩니다. 브라우저를 닫아도 이메일 링크로 다시 받을 수 있습니다.
+            결과 이미지는 {userEmail || '로그인한 Google 이메일'}로 첨부 발송됩니다. 별도 다운로드 링크나 R2 저장소를 거치지 않습니다.
           </p>
           <p className="text-muted-foreground">
-            생성 결과는 보안 저장소에 임시 보관되며, 링크 만료 또는 정리 작업 이후 복구할 수 없습니다.
+            화면의 결과 미리보기는 임시 제공용이며, 장기 보관이 필요하면 이메일 첨부파일을 저장하세요.
           </p>
           {jobId && userEmail && (
             <Button

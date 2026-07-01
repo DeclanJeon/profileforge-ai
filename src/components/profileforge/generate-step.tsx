@@ -30,7 +30,7 @@ const STAGES: { id: Stage; label: string }[] = [
   { id: 'submitting', label: '생성 요청 접수' },
   { id: 'queued', label: '대기열 등록 및 순번 확인' },
   { id: 'running', label: '고해상도 프로필 이미지 생성' },
-  { id: 'done', label: '다운로드 링크 이메일 발송 준비' },
+  { id: 'done', label: '결과 이미지 첨부 이메일 발송 준비' },
 ]
 
 export function GenerateStep() {
@@ -170,7 +170,7 @@ export function GenerateStep() {
           setStage('done')
           toast({
             title: data.status === 'partially_succeeded' ? '일부 생성 완료' : '생성 완료',
-            description: data.message || `${data.images?.length || 0}장의 프로필이 생성되었습니다. 이메일로 다운로드 링크를 보냈습니다.`,
+            description: data.message || `${data.images?.length || 0}장의 프로필이 생성되었습니다. 이메일에 결과 이미지를 첨부해 보냈습니다.`,
           })
           setTimeout(() => setStep('results'), 600)
           return
@@ -258,7 +258,7 @@ export function GenerateStep() {
           <Clock className="w-4 h-4 text-fuchsia-600" />
           <AlertTitle className="text-sm">예상 대기시간: 약 {serverEtaSeconds ? formatMinutes(serverEtaSeconds) : estimatedTime.label}</AlertTitle>
           <AlertDescription className="text-xs">
-            브라우저를 닫아도 서버 대기열에서 작업이 계속 진행되고, 완료되면 입력한 이메일로 다운로드 링크를 보냅니다.
+            브라우저를 닫아도 서버 대기열에서 작업이 계속 진행되고, 완료되면 입력한 이메일로 결과 이미지를 첨부해 보냅니다.
           </AlertDescription>
         </Alert>
       )}

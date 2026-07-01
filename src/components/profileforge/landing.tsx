@@ -97,7 +97,7 @@ export function Landing() {
             </h1>
             <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               얼굴 정체성을 보존하면서 이력서·LinkedIn·SNS·코스프레·판타지 프로필까지.
-              생성은 대기열에서 처리되고 완료되면 이메일로 다운로드 링크를 보내드립니다.
+              생성은 대기열에서 처리되고 완료되면 이메일에 결과 이미지를 첨부해 보내드립니다.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
@@ -124,7 +124,7 @@ export function Landing() {
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 20 크레딧 무료 제공
               </span>
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 다운로드 링크 24시간 유효
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 이메일 첨부파일로 결과 제공
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 모델 학습 미사용

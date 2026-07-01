@@ -139,7 +139,7 @@ function publicMessage(status: string, error?: string | null) {
   if (status === 'queued') return '생성 요청이 접수되었습니다. 완료되면 이메일로 알려드립니다.'
   if (status === 'running') return '이미지를 생성하고 있습니다. 브라우저를 닫아도 작업은 계속 진행됩니다.'
   if (status === 'partially_succeeded') return '일부 이미지 생성이 완료되었습니다. 성공한 이미지만 제공됩니다.'
-  if (status === 'succeeded') return '생성이 완료되었습니다. 다운로드 링크를 이메일로 보냈습니다.'
+  if (status === 'succeeded') return '생성이 완료되었습니다. 결과 이미지를 이메일 첨부파일로 보냈습니다.'
   if (status === 'failed') return sanitizePublicError(error)
   return '작업 상태를 확인하고 있습니다.'
 }
