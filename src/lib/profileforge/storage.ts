@@ -1,7 +1,5 @@
 import { promises as fs } from 'fs'
 import path from 'path'
-import { HeadObjectCommand, PutObjectCommand, S3Client, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { isR2Configured, profileForgeConfig } from './config'
 import { generatedImageDir } from './image-provider'
 
@@ -14,11 +12,12 @@ export interface StoredGeneratedImage {
   mimeType: string
 }
 
-let s3Client: S3Client | null = null
+let s3Client: { send(command: unknown): Promise<any> } | null = null
 
-function getR2Client() {
+async function getR2Client() {
   if (!isR2Configured()) return null
   if (!s3Client) {
+    const { S3Client } = await import('@aws-sdk/client-s3')
     s3Client = new S3Client({
       region: 'auto',
       endpoint: profileForgeConfig.r2.endpoint,
@@ -49,7 +48,7 @@ export async function storeGeneratedImage(input: {
 }): Promise<StoredGeneratedImage> {
   const mimeType = input.mimeType || 'image/png'
   const stat = await fs.stat(input.localPath)
-  const client = getR2Client()
+  const client = await getR2Client()
 
   if (!client) {
     await fs.mkdir(generatedImageDir(), { recursive: true })
@@ -73,6 +72,7 @@ export async function storeGeneratedImage(input: {
     imageId: input.imageId,
     extension: path.extname(input.localPath) || '.png',
   })
+  const { HeadObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3')
   const body = await fs.readFile(input.localPath)
   await client.send(new PutObjectCommand({
     Bucket: profileForgeConfig.r2.bucket,
@@ -109,8 +109,10 @@ export async function storeGeneratedImage(input: {
 }
 
 export async function deleteStoredImage(input: { bucket?: string | null; key?: string | null; imageUrl?: string | null }) {
-  if (input.bucket && input.bucket !== 'local' && input.key && getR2Client()) {
-    await getR2Client()!.send(new DeleteObjectCommand({ Bucket: input.bucket, Key: input.key }))
+  const client = await getR2Client()
+  if (input.bucket && input.bucket !== 'local' && input.key && client) {
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+    await client.send(new DeleteObjectCommand({ Bucket: input.bucket, Key: input.key }))
     return true
   }
   if (input.bucket === 'local' && input.key) {
@@ -129,10 +131,13 @@ export async function deleteStoredImage(input: { bucket?: string | null; key?: s
 }
 
 export async function createDownloadUrl(input: { bucket?: string | null; key?: string | null; imageUrl?: string | null }) {
-  if (input.bucket && input.bucket !== 'local' && input.key && getR2Client()) {
-    await getR2Client()!.send(new HeadObjectCommand({ Bucket: input.bucket, Key: input.key }))
+  const client = await getR2Client()
+  if (input.bucket && input.bucket !== 'local' && input.key && client) {
+    const { HeadObjectCommand, GetObjectCommand } = await import('@aws-sdk/client-s3')
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+    await client.send(new HeadObjectCommand({ Bucket: input.bucket, Key: input.key }))
     return getSignedUrl(
-      getR2Client()!,
+      client,
       new GetObjectCommand({
         Bucket: input.bucket,
         Key: input.key,
