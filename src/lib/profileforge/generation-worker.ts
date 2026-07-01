@@ -18,8 +18,9 @@ function scoreImage(idx: number, identityLock: number, creativity: number) {
 
 function safeError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
-  if (/timeout/i.test(message)) return { code: 'provider_timeout', userMessage: '이미지 생성 서버 응답이 지연되었습니다. 잠시 후 다시 시도해주세요.' }
-  if (/R2|upload/i.test(message)) return { code: 'storage_error', userMessage: '결과 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.' }
+  if (/timeout|timed out/i.test(message)) return { code: 'provider_timeout', userMessage: '이미지 생성 서버 응답이 지연되었습니다. 잠시 후 다시 시도해주세요.' }
+  if (/Upload reference image is unavailable|업로드|원본|ENOENT.*uploads/i.test(message)) return { code: 'reference_image_unavailable', userMessage: '업로드 원본 이미지를 확인할 수 없습니다. 다시 업로드해주세요.' }
+  if (/R2|storage|PutObject|HeadObject|GetObject|S3|presign/i.test(message)) return { code: 'storage_error', userMessage: '결과 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.' }
   if (/TOKEN|PEPPER|secret/i.test(message)) return { code: 'configuration_error', userMessage: '서비스 설정 문제로 생성이 완료되지 않았습니다.' }
   return { code: 'generation_error', userMessage: '생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' }
 }

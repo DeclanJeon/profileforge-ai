@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "dev:pf": "bun --env-file=.env.development.local run dev",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cp -r scripts src prisma tsconfig.json .next/standalone/",
+    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cp -r scripts src tsconfig.json .next/standalone/ && rm -rf .next/standalone/prisma && mkdir -p .next/standalone/prisma && cp prisma/schema.prisma .next/standalone/prisma/schema.prisma",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "start:prod": "bun --env-file=.env.production.local run start",
     "worker": "NODE_ENV=production bun scripts/profileforge-worker.ts",

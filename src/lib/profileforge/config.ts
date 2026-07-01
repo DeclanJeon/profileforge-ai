@@ -58,14 +58,14 @@ export const profileForgeConfig = {
     imageTimeoutSeconds: intEnv('PROFILEFORGE_IMAGE_TIMEOUT_SECONDS', 900, 30),
     jobTimeoutSeconds: intEnv('PROFILEFORGE_JOB_TIMEOUT_SECONDS', 3600, 60),
     staleRunningSeconds: intEnv('PROFILEFORGE_QUEUE_STALE_RUNNING_SECONDS', 5400, 60),
-    averageImageSeconds: intEnv('PROFILEFORGE_AVERAGE_IMAGE_SECONDS', 360, 30),
+    averageImageSeconds: intEnv('PROFILEFORGE_AVERAGE_IMAGE_SECONDS', 900, 30),
     workerSecret: strEnv('PROFILEFORGE_WORKER_SECRET'),
   },
 
   retention: {
     generatedImageDir: strEnv('PROFILEFORGE_GENERATED_IMAGE_DIR', '/tmp/profileforge-generated'),
     generatedImageTtlSeconds: intEnv('PROFILEFORGE_GENERATED_IMAGE_TTL_SECONDS', 600, 60),
-    uploadTtlSeconds: intEnv('PROFILEFORGE_UPLOAD_TTL_SECONDS', 1800, 60),
+    uploadTtlSeconds: intEnv('PROFILEFORGE_UPLOAD_TTL_SECONDS', 21600, 60),
     downloadTokenTtlHours: intEnv('PROFILEFORGE_DOWNLOAD_TOKEN_TTL_HOURS', 24, 1),
     maxDownloadsPerToken: intEnv('PROFILEFORGE_MAX_DOWNLOADS_PER_TOKEN', 10, 1),
   },
