@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           <p className="text-muted-foreground leading-relaxed">
             ProfileForge AI는 AI 프로필 이미지 생성에 필요한 최소 정보만 처리합니다. 회원 식별과 결과 발송을 위해
             서버에 지속 저장하는 개인정보는 Google 로그인 이메일 주소가 전부입니다. 업로드 원본과 생성 결과 이미지는
-            서비스 제공을 위한 임시 처리 파일이며 정해진 짧은 보관 기간 후 삭제됩니다.
+            이메일 첨부 발송을 위한 임시 처리 파일이며, 이메일 발송 성공 직후 즉시 삭제됩니다.
           </p>
         </header>
 
@@ -49,13 +49,13 @@ export default function PrivacyPage() {
                   <td className="p-3">업로드 원본</td>
                   <td className="p-3">사용자가 업로드한 얼굴 사진 파일</td>
                   <td className="p-3">AI 프로필 이미지 생성 입력값</td>
-                  <td className="p-3">기본 30분 임시 보관 후 삭제</td>
+                  <td className="p-3">생성 및 이메일 발송 직후 삭제</td>
                 </tr>
                 <tr>
                   <td className="p-3">생성 결과</td>
                   <td className="p-3">AI가 생성한 프로필 이미지 파일</td>
                   <td className="p-3">미리보기, 다운로드, 이메일 첨부 발송</td>
-                  <td className="p-3">기본 10분 임시 보관 후 삭제</td>
+                  <td className="p-3">이메일 첨부 발송 직후 삭제</td>
                 </tr>
                 <tr>
                   <td className="p-3">운영 기록</td>
@@ -75,10 +75,10 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. 이미지 처리와 보관 원칙</h2>
           <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <li>업로드 이미지는 생성 작업을 위해서만 사용하며 모델 학습에 사용하지 않습니다.</li>
-            <li>생성 결과는 장기 공개 URL로 보관하지 않고, 짧은 시간 동안 API를 통해서만 임시 제공됩니다.</li>
+            <li>업로드 이미지는 생성 작업과 이메일 첨부 발송을 위해서만 사용하며 모델 학습에 사용하지 않습니다.</li>
+            <li>생성 결과는 장기 공개 URL로 보관하지 않고, 이메일 첨부 발송 직후 서버 파일을 삭제합니다.</li>
             <li>완료된 결과는 로그인한 Google 이메일로 첨부파일 형태로 발송됩니다.</li>
-            <li>사용자는 앱의 삭제 기능을 통해 업로드 원본과 생성 결과의 삭제를 요청할 수 있습니다.</li>
+            <li>이메일 발송 실패 또는 장애 복구가 필요한 경우에만 재시도를 위해 임시 파일이 짧게 남을 수 있으며, 만료 정리 작업으로 삭제됩니다.</li>
             <li>장애 복구 중인 작업은 중복 생성 방지와 정리를 위해 필요한 상태값만 유지합니다.</li>
           </ul>
         </section>

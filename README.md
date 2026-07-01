@@ -46,12 +46,12 @@ The current product ships with **62 prompt-designed concepts** across:
 
 ## Privacy and retention model
 
-Generated images are intentionally short-lived. The production design avoids storing generated outputs in public/static app folders.
+Generated images are only held long enough to attach them to the completion email. After a successful email send, the worker deletes both the uploaded source image and generated result files from server storage.
 
-| Asset | Storage | URL shape | TTL | Cache policy |
-| --- | --- | --- | --- | --- |
-| Uploaded source image | `public/uploads` runtime directory | `/uploads/{file}` | 30 minutes | temporary input only |
-| Generated result image | `/tmp/profileforge-generated` | `/api/profileforge/image/{file}` | 10 minutes | `private, no-store, max-age=0` |
+| Asset | Storage | Deletion point | Cache policy |
+| --- | --- | --- | --- |
+| Uploaded source image | `public/uploads` runtime directory | deleted after completion email is sent | temporary input only |
+| Generated result image | `/tmp/profileforge-generated` | deleted after completion email is sent | `private, no-store, max-age=0` fallback only |
 
 Cleanup is handled by `scripts/profileforge-cleanup.mjs`, which removes expired DB records and orphaned files. On production, a systemd timer runs the cleanup job every five minutes.
 

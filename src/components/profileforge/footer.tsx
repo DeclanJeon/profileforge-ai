@@ -59,7 +59,7 @@ export function Footer() {
               데이터 보관
             </h4>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li>이메일 첨부 결과 제공 · 원본 30분 TTL 삭제</li>
+              <li>이메일 발송 직후 원본·결과 삭제</li>
               <li>모델 학습 미사용 (기본값)</li>
               <li>사용자 즉시 삭제 지원</li>
               <li>API 전용 no-store 임시 제공</li>

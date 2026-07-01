@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer'
 import { db } from '@/lib/db'
 import { isEmailConfigured, profileForgeConfig } from './config'
 import { createDownloadUrl, deleteStoredImage } from './storage'
-import { generatedImageDir, generatedImageUrlToLocalPath } from './image-provider'
+import { generatedImageDir, generatedImageUrlToLocalPath, uploadFileUrlToLocalPath } from './image-provider'
 
 export function maskEmail(email: string) {
   const [local, domain] = email.split('@')
@@ -191,6 +191,23 @@ async function deleteImagesAfterEmail(jobId: string, images: Array<{
   }
 }
 
+async function deleteUploadAfterEmail(upload: { id: string; fileUrl: string; deletedAt?: Date | null } | null | undefined) {
+  if (!upload || upload.deletedAt) return
+  try {
+    const localPath = uploadFileUrlToLocalPath(upload.fileUrl)
+    if (localPath) await fs.rm(localPath, { force: true })
+    await db.upload.updateMany({
+      where: { id: upload.id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    })
+  } catch (error) {
+    console.warn('[profileforge-email] upload deletion after email failed', {
+      uploadId: upload.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 function completionEmailHtml(input: { conceptName: string; attachmentCount: number }) {
   const conceptName = escapeHtml(input.conceptName)
   const attachmentLabel = input.attachmentCount > 1 ? `${input.attachmentCount}장` : '1장'
@@ -279,7 +296,7 @@ function completionEmailText(input: { conceptName: string; attachmentCount: numb
   ].join('\n')
 }
 
-export async function sendPendingEmails(limit = 10) {
+export async function sendPendingEmails(limit = 10, jobId?: string) {
   await db.emailDelivery.updateMany({
     where: {
       status: 'sending',
@@ -297,11 +314,13 @@ export async function sendPendingEmails(limit = 10) {
       status: { in: ['pending', 'failed'] },
       retryCount: { lt: 99 },
       OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
+      ...(jobId ? { jobId } : {}),
     },
     include: {
       job: {
         include: {
           images: { where: { status: { in: ['available', 'uploaded_r2'] }, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'asc' } },
+          upload: true,
         },
       },
     },
@@ -343,6 +362,7 @@ export async function sendPendingEmails(limit = 10) {
         },
       })
       await deleteImagesAfterEmail(delivery.jobId, delivery.job.images)
+      await deleteUploadAfterEmail(delivery.job.upload)
       sent += 1
     } catch (error) {
       await db.emailDelivery.update({

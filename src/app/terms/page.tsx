@@ -76,9 +76,9 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">6. 데이터 보관과 삭제</h2>
           <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <li>업로드 원본은 기본 30분 동안 임시 보관 후 삭제됩니다.</li>
-            <li>생성 결과는 기본 10분 동안 임시 미리보기·다운로드 제공 후 삭제됩니다.</li>
-            <li>생성 결과는 로그인한 Google 이메일로 첨부파일 발송됩니다.</li>
+            <li>업로드 원본은 생성 및 이메일 첨부 발송 직후 삭제됩니다.</li>
+            <li>생성 결과는 로그인한 Google 이메일로 첨부파일 발송된 직후 서버에서 삭제됩니다.</li>
+            <li>이메일 발송 실패 또는 장애 복구가 필요한 경우에만 재시도를 위해 임시 파일이 짧게 남을 수 있습니다.</li>
             <li>사용자는 서비스 화면에서 즉시 삭제를 요청할 수 있습니다.</li>
             <li>작업 상태, 오류 코드, 사용량 제한용 해시 등 운영 기록은 장애 대응과 남용 방지를 위해 필요한 기간 보관될 수 있습니다.</li>
           </ul>

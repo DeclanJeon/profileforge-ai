@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { generateProfileImage, uploadFileUrlToLocalPath } from './image-provider'
 import { claimNextGenerationJob, heartbeatGenerationJob } from './queue'
 import { deleteStoredImage, storeGeneratedImage } from './storage'
-import { hashEmail } from './email'
+import { hashEmail, sendPendingEmails } from './email'
 import { profileForgeConfig } from './config'
 
 function scoreImage(idx: number, identityLock: number, creativity: number) {
@@ -198,6 +198,9 @@ export async function processGenerationJob(jobId: string, workerId: string): Pro
     if (!finalized) {
       await cleanupGeneratedRows(createdImageIds)
       throw new Error('worker lease lost')
+    }
+    if (job.email) {
+      await sendPendingEmails(1, job.id)
     }
     return { status: finalStatus as 'succeeded' | 'partially_succeeded', successCount, errors }
   } catch (error) {
