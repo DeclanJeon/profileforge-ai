@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useProfileStore } from '@/store/profile-store'
 import { Sparkles, Shield, Heart } from 'lucide-react'
@@ -43,6 +44,14 @@ export function Footer() {
               <Shield className="w-3 h-3 mr-1" />
               전체 정책 보기
             </Button>
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+              <Link href="/privacy" className="text-fuchsia-600 hover:underline">
+                개인정보처리방침
+              </Link>
+              <Link href="/terms" className="text-fuchsia-600 hover:underline">
+                이용약관
+              </Link>
+            </div>
           </div>
 
           <div>
