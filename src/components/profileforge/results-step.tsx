@@ -66,9 +66,22 @@ export function ResultsStep() {
   const zoomResult = results.find((r) => r.id === zoomId)
 
   if (results.length === 0) {
+    const emailed = generationStatus === 'succeeded' || generationStatus === 'partially_succeeded'
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-muted-foreground">생성된 결과가 없습니다.</p>
+      <div className="max-w-2xl mx-auto px-4 py-12 text-center space-y-4">
+        {emailed ? (
+          <>
+            <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500" />
+            <div>
+              <h2 className="text-xl font-bold">결과 이미지가 이메일로 발송되었습니다</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                운영 서버에는 생성 이미지를 보관하지 않습니다. {userEmail || '로그인한 Google 이메일'}의 첨부파일을 확인하세요.
+              </p>
+            </div>
+          </>
+        ) : (
+          <p className="text-muted-foreground">생성된 결과가 없습니다.</p>
+        )}
         <Button className="mt-3" onClick={() => setStep('customize')}>
           다시 생성
         </Button>

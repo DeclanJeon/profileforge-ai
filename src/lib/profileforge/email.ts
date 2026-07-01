@@ -4,7 +4,7 @@ import path from 'path'
 import nodemailer from 'nodemailer'
 import { db } from '@/lib/db'
 import { isEmailConfigured, profileForgeConfig } from './config'
-import { createDownloadUrl } from './storage'
+import { createDownloadUrl, deleteStoredImage } from './storage'
 import { generatedImageDir, generatedImageUrlToLocalPath } from './image-provider'
 
 export function maskEmail(email: string) {
@@ -165,6 +165,32 @@ async function loadImageAttachments(images: Array<{
   return Promise.all(images.map((image, index) => loadImageAttachment(image, index)))
 }
 
+async function deleteImagesAfterEmail(jobId: string, images: Array<{
+  id: string
+  imageUrl?: string | null
+  r2Bucket?: string | null
+  r2Key?: string | null
+}>) {
+  for (const image of images) {
+    try {
+      await deleteStoredImage({ bucket: image.r2Bucket, key: image.r2Key, imageUrl: image.imageUrl })
+      await db.generatedImage.updateMany({
+        where: { id: image.id, jobId, deletedAt: null },
+        data: {
+          status: 'deleted',
+          deletedAt: new Date(),
+        },
+      })
+    } catch (error) {
+      console.warn('[profileforge-email] generated image deletion after email failed', {
+        jobId,
+        imageId: image.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+}
+
 function completionEmailHtml(input: { conceptName: string; attachmentCount: number }) {
   const conceptName = escapeHtml(input.conceptName)
   const attachmentLabel = input.attachmentCount > 1 ? `${input.attachmentCount}장` : '1장'
@@ -316,6 +342,7 @@ export async function sendPendingEmails(limit = 10) {
           providerResponseId: typeof result.providerResponse === 'string' ? result.providerResponse.slice(0, 200) : null,
         },
       })
+      await deleteImagesAfterEmail(delivery.jobId, delivery.job.images)
       sent += 1
     } catch (error) {
       await db.emailDelivery.update({
