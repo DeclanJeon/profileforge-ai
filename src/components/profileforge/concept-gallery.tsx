@@ -32,7 +32,7 @@ function getConceptThumbnail(concept: Concept) {
 function presetsForMode(mode: StyleMode) {
   if (mode === 'fashion') return FASHION_PRESETS
   if (mode === 'hair') return HAIR_PRESETS
-  if (mode === 'makeover') return [...FASHION_PRESETS.slice(0, 3), ...HAIR_PRESETS.slice(0, 3)]
+  if (mode === 'makeover') return [...FASHION_PRESETS, ...HAIR_PRESETS]
   return []
 }
 
@@ -135,7 +135,7 @@ export function ConceptGallery() {
       {styleMode === 'profile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">{filteredConcepts.map((concept) => <ConceptCard key={concept.id} concept={concept} isSelected={concept.id === selectedConceptId} onSelect={() => handleConceptSelect(concept)} />)}</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">{filteredPresets.map((preset) => <StylePresetCard key={preset.id} preset={preset} isSelected={preset.id === customize.fashionPresetId || preset.id === customize.hairPresetId} onSelect={() => handlePresetSelect(preset)} />)}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">{filteredPresets.map((preset) => <StylePresetCard key={preset.id} preset={preset} isSelected={preset.id === customize.fashionPresetId || preset.id === customize.hairPresetId} onSelect={() => handlePresetSelect(preset)} />)}</div>
       )}
 
       <div className="sticky bottom-4 bg-background/95 backdrop-blur border rounded-xl p-3 shadow-md"><div className="flex items-center justify-between gap-3"><div className="text-xs text-muted-foreground">{canProceed ? <span className="flex items-center gap-1 text-fuchsia-600"><CheckCircle2 className="w-3.5 h-3.5" />{selectedLabel} 선택됨</span> : <span>{styleMode === 'makeover' ? '패션과 헤어를 각각 하나씩 선택해주세요' : '스타일을 선택해주세요'}</span>}</div><div className="flex items-center gap-2"><Button variant="ghost" size="sm" onClick={() => setStep('upload')}><ArrowLeft className="w-4 h-4 mr-1" />이전</Button><Button size="sm" disabled={!canProceed} onClick={() => setStep('customize')} className="bg-gradient-to-r from-fuchsia-600 to-rose-500">커스터마이즈<ArrowRight className="w-4 h-4 ml-1.5" /></Button></div></div></div>
@@ -148,10 +148,18 @@ function CategoryChip({ active, onClick, label }: { active: boolean; onClick: ()
 }
 
 function StylePresetCard({ preset, isSelected, onSelect }: { preset: StylePreset; isSelected: boolean; onSelect: () => void }) {
-  const Icon = preset.mode === 'hair' ? Scissors : Shirt
-  return <Card className={cn('cursor-pointer border-2 transition-all hover:shadow-md overflow-hidden', isSelected ? 'border-fuchsia-500 ring-2 ring-fuchsia-200 dark:ring-fuchsia-900' : 'border-border')} onClick={onSelect}>
-    <div className="h-28 bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 relative p-4 text-white"><Icon className="w-7 h-7 mb-4" /><h3 className="font-bold">{preset.name}</h3><p className="text-xs opacity-85">{preset.category}</p>{isSelected && <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/95 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-fuchsia-600" /></div>}</div>
-    <CardContent className="p-3 space-y-2"><p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{preset.description}</p><div className="flex flex-wrap gap-1">{preset.tags.map((tag) => <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{tag}</span>)}</div></CardContent>
+  return <Card className={cn('group cursor-pointer border-2 transition-all hover:shadow-md overflow-hidden', isSelected ? 'border-fuchsia-500 ring-2 ring-fuchsia-200 dark:ring-fuchsia-900' : 'border-border')} onClick={onSelect}>
+    <div className="aspect-square bg-muted relative overflow-hidden">
+      {preset.thumbnailPath ? <img src={preset.thumbnailPath} alt={`${preset.name} 적용 예시`} className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /> : <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400" />}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/10" />
+      <div className="absolute top-2 left-2"><Badge variant="secondary" className="text-[10px] h-5">{preset.mode === 'hair' ? '헤어' : '패션'}</Badge></div>
+      {isSelected && <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/95 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-fuchsia-600" /></div>}
+      <div className="absolute bottom-0 inset-x-0 p-2 text-white">
+        <h3 className="font-bold text-xs line-clamp-1">{preset.name}</h3>
+        <p className="text-[10px] opacity-85 line-clamp-1">{preset.category}</p>
+      </div>
+    </div>
+    <CardContent className="p-2 space-y-1.5"><p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{preset.description}</p><div className="flex flex-wrap gap-1">{preset.tags.slice(0, 3).map((tag) => <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{tag}</span>)}</div></CardContent>
   </Card>
 }
 
