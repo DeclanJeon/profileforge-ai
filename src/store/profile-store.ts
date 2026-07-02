@@ -7,6 +7,7 @@
 import { create } from 'zustand'
 import { Concept, ConceptCategory } from '@/lib/profileforge/concepts'
 import { CustomizeOptions } from '@/lib/profileforge/prompt-builder'
+import { StyleMode } from '@/lib/profileforge/style-presets'
 
 export type WizardStep =
   | 'landing'
@@ -75,6 +76,7 @@ interface ProfileState {
   // 커스터마이즈
   customize: CustomizeOptions
   setCustomize: (patch: Partial<CustomizeOptions>) => void
+  setStyleMode: (mode: StyleMode) => void
   resetCustomizeForConcept: (concept: Concept) => void
 
   // 생성
@@ -110,6 +112,7 @@ interface ProfileState {
 }
 
 const DEFAULT_CUSTOMIZE: CustomizeOptions = {
+  styleMode: 'profile',
   creativity: 30,
   identityLockStrength: 75,
   aspectRatio: '4:5',
@@ -178,10 +181,25 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   customize: DEFAULT_CUSTOMIZE,
   setCustomize: (patch) =>
     set((s) => ({ customize: { ...s.customize, ...patch } })),
+  setStyleMode: (mode) =>
+    set((s) => ({
+      customize: {
+        ...s.customize,
+        styleMode: mode,
+        fashionPresetId: mode === 'fashion' || mode === 'makeover' ? s.customize.fashionPresetId : undefined,
+        hairPresetId: mode === 'hair' || mode === 'makeover' ? s.customize.hairPresetId : undefined,
+        cameraShotId: mode === 'profile' ? undefined : s.customize.cameraShotId ?? 'camera-half-body-editorial',
+      },
+    })),
   resetCustomizeForConcept: (concept) =>
     set({
       customize: {
         ...DEFAULT_CUSTOMIZE,
+        styleMode: get().customize.styleMode,
+        fashionPresetId: get().customize.fashionPresetId,
+        hairPresetId: get().customize.hairPresetId,
+        cameraShotId: get().customize.cameraShotId,
+        customStyleNote: get().customize.customStyleNote,
         creativity: concept.defaultCreativity,
         aspectRatio: concept.defaultAspect,
       },

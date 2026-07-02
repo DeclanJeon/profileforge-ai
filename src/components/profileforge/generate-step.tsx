@@ -112,6 +112,11 @@ export function GenerateStep() {
           identityLockStrength: customize.identityLockStrength,
           skinRetouch: customize.skinRetouch,
           aiLabel: customize.aiLabel,
+          styleMode: customize.styleMode,
+          fashionPresetId: customize.fashionPresetId,
+          hairPresetId: customize.hairPresetId,
+          cameraShotId: customize.cameraShotId,
+          customStyleNote: customize.customStyleNote,
           thumbnailPrompt: selectedConcept.thumbnailPrompt,
         }),
       })
