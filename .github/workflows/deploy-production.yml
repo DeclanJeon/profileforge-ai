@@ -1,0 +1,46 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: profileforge-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ponslink
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PONSLINK_HOST }}
+          username: ${{ secrets.PONSLINK_USER }}
+          key: ${{ secrets.PONSLINK_SSH_KEY }}
+          port: ${{ secrets.PONSLINK_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.PROFILEFORGE_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="$HOME/apps/profileforge-ai/v1"
+            fi
+            cd "$APP_DIR"
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+            bun install --frozen-lockfile
+            bunx prisma generate
+            bun --env-file=.env.production.local run db:push:prod
+            bun --env-file=.env.production.local run build
+            sudo systemctl restart profileforge.service
+            sudo systemctl restart profileforge-cleanup.timer || true
+            sudo systemctl status profileforge.service --no-pager
