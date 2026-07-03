@@ -1,4 +1,5 @@
 'use client'
+import { useMemo, useState } from 'react'
 
 import { signIn, useSession } from 'next-auth/react'
 import { useProfileStore } from '@/store/profile-store'
@@ -17,6 +18,8 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Lock,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -24,30 +27,11 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   CONCEPTS,
+  ConceptCategory,
 } from '@/lib/profileforge/concepts'
 
-const SAMPLE_CONCEPT_IDS = [
-  'pro-corporate-navy',
-  'social-night-market',
-  'editorial-vogue-style',
-  'cosplay-fantasy-mage',
-  'fantasy-knight',
-  'scifi-astronaut',
-  'anime-monster-partner-adventurer',
-  'wedding-full-shot-classic',
-  'sports-football-player-full-shot',
-  'idol-stage-full-shot',
-  'model-runway-full-shot',
-  'art-pop-art',
-] as const
-
-const SAMPLE_CONCEPTS = SAMPLE_CONCEPT_IDS.map((id) => {
-  const concept = CONCEPTS.find((item) => item.id === id)
-  if (!concept) {
-    throw new Error(`Missing landing sample concept: ${id}`)
-  }
-  return concept
-})
+const PREVIEW_PAGE_SIZE = 12
+type PreviewCategory = 'All' | ConceptCategory
 
 const USE_CASES = [
   { icon: '💼', title: '구직자/직장인', desc: '이력서, LinkedIn, 회사 프로필용 프로페셔널 헤드샷' },
@@ -68,6 +52,24 @@ const FLOW = [
 export function Landing() {
   const { setStep, setPolicyOpen } = useProfileStore()
   const { status } = useSession()
+  const [previewCategory, setPreviewCategory] = useState<PreviewCategory>('All')
+  const [previewPage, setPreviewPage] = useState(0)
+  const previewConcepts = useMemo(() => {
+    if (previewCategory === 'All') return CONCEPTS
+    return CONCEPTS.filter((concept) => concept.category === previewCategory)
+  }, [previewCategory])
+  const previewPageCount = Math.max(1, Math.ceil(previewConcepts.length / PREVIEW_PAGE_SIZE))
+  const visiblePreviewConcepts = previewConcepts.slice(
+    previewPage * PREVIEW_PAGE_SIZE,
+    previewPage * PREVIEW_PAGE_SIZE + PREVIEW_PAGE_SIZE,
+  )
+  const changePreviewCategory = (category: PreviewCategory) => {
+    setPreviewCategory(category)
+    setPreviewPage(0)
+  }
+  const movePreviewPage = (direction: -1 | 1) => {
+    setPreviewPage((page) => Math.min(previewPageCount - 1, Math.max(0, page + direction)))
+  }
   const startUpload = () => {
     if (status === 'authenticated') {
       setStep('upload')
@@ -144,19 +146,43 @@ export function Landing() {
 
       {/* Sample Gallery (real concept thumbnails) */}
       <section className="max-w-6xl mx-auto px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h2 className="text-2xl md:text-3xl font-bold">다양한 컨셉 미리보기</h2>
           <p className="text-muted-foreground text-sm mt-2">
-            9개 카테고리 · 62개 핵심 컨셉 · 확장 프롬프트 라이브러리
+            9개 카테고리 · {CONCEPTS.length}개 핵심 컨셉을 12개씩 둘러보세요
           </p>
         </div>
+
+        <div className="flex gap-1.5 overflow-x-auto pb-3 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+          <button
+            type="button"
+            onClick={() => changePreviewCategory('All')}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${previewCategory === 'All' ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-200' : 'border-border bg-background hover:bg-muted'}`}
+          >
+            전체 {CONCEPTS.length}
+          </button>
+          {CATEGORY_ORDER.map((category) => {
+            const count = CONCEPTS.filter((concept) => concept.category === category).length
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => changePreviewCategory(category)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${previewCategory === category ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-200' : 'border-border bg-background hover:bg-muted'}`}
+              >
+                {CATEGORY_LABELS[category]} {count}
+              </button>
+            )
+          })}
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
-          {SAMPLE_CONCEPTS.map((concept, idx) => (
+          {visiblePreviewConcepts.map((concept, idx) => (
             <motion.div
-              key={concept.id}
-              initial={{ opacity: 0, y: 20 }}
+              key={`${previewCategory}-${previewPage}-${concept.id}`}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: idx * 0.05 }}
+              transition={{ duration: 0.3, delay: idx * 0.03 }}
             >
               <Card
                 className="overflow-hidden border-0 p-0 shadow-md hover:shadow-xl transition-all cursor-pointer group"
@@ -167,7 +193,7 @@ export function Landing() {
                     src={`/concept-thumbnails/${concept.id}.webp`}
                     alt={`${concept.name} concept preview`}
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading={idx < 4 ? 'eager' : 'lazy'}
+                    loading={previewPage === 0 && idx < 4 ? 'eager' : 'lazy'}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                   <div className="absolute left-3 right-3 bottom-3 text-white">
@@ -183,6 +209,42 @@ export function Landing() {
               </Card>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border bg-muted/30 px-3 py-3">
+          <p className="text-xs text-muted-foreground">
+            {previewCategory === 'All' ? '전체 컨셉' : CATEGORY_LABELS[previewCategory]} · {previewConcepts.length}개 중{' '}
+            {previewPage * PREVIEW_PAGE_SIZE + 1}-{Math.min((previewPage + 1) * PREVIEW_PAGE_SIZE, previewConcepts.length)}개 표시
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => movePreviewPage(-1)}
+              disabled={previewPage === 0}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              이전
+            </Button>
+            <span className="min-w-14 text-center text-xs font-semibold">
+              {previewPage + 1} / {previewPageCount}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => movePreviewPage(1)}
+              disabled={previewPage >= previewPageCount - 1}
+            >
+              다음
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+          <Button type="button" size="sm" className="bg-gradient-to-r from-fuchsia-600 to-rose-500" onClick={startUpload}>
+            전체 컨셉 선택하러 가기
+            <ArrowRight className="w-4 h-4 ml-1.5" />
+          </Button>
         </div>
       </section>
 
