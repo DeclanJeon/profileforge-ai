@@ -64,6 +64,7 @@ server.log
 /skills/
 # local/generated research artifacts
 tool-results/
-upload/
+# local ad-hoc upload scratch dirs (not the Next.js route at src/app/upload)
+/upload/
 worklog.md
 .zscripts/*.pid
