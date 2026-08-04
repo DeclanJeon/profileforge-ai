@@ -52,6 +52,56 @@ const SKIN_OPTIONS: { value: CustomizeOptions['skinRetouch']; label: string; des
 
 const RESULT_COUNT_OPTIONS = [1, 2, 4]
 
+
+function AestheticPresetCard({
+  preset,
+  selected,
+  onSelect,
+}: {
+  preset: { id: string; name: string; description: string; tags: string[]; thumbnailPath?: string }
+  selected: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'rounded-lg border-2 text-left transition-all overflow-hidden',
+        selected ? 'border-fuchsia-500 bg-background shadow-sm' : 'border-border bg-background/70 hover:border-fuchsia-300',
+      )}
+    >
+      <div className="aspect-[16/10] bg-muted relative overflow-hidden">
+        {preset.thumbnailPath ? (
+          <img
+            src={preset.thumbnailPath}
+            alt={preset.name}
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              const el = e.currentTarget
+              if (el.dataset.fallbackApplied) return
+              el.dataset.fallbackApplied = '1'
+              el.style.display = 'none'
+              const sib = el.nextElementSibling as HTMLElement | null
+              if (sib) sib.style.display = 'block'
+            }}
+          />
+        ) : null}
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/80 via-rose-500/80 to-amber-400/80"
+          style={{ display: preset.thumbnailPath ? 'none' : 'block' }}
+        />
+      </div>
+      <div className="p-3">
+        <p className="font-semibold text-sm">{preset.name}</p>
+        <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
+        <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
+      </div>
+    </button>
+  )
+}
+
 export function CustomizeStep() {
   const { selectedConcept, customize, setCustomize, setStep, resetCustomizeForConcept, uploads, setContactEmail } = useProfileStore()
   const { data: session, status } = useSession()
@@ -172,21 +222,12 @@ export function CustomizeStep() {
               <Label className="text-xs flex items-center gap-1 mb-2"><Lightbulb className="w-3.5 h-3.5" />조명 프리셋</Label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {LIGHTING_PRESETS.map((preset) => (
-                  <button
+                  <AestheticPresetCard
                     key={preset.id}
-                    type="button"
-                    onClick={() => setCustomize({ lightingPresetId: preset.id })}
-                    className={cn(
-                      'rounded-lg border-2 p-3 text-left transition-all',
-                      customize.lightingPresetId === preset.id
-                        ? 'border-fuchsia-500 bg-background shadow-sm'
-                        : 'border-border bg-background/70 hover:border-fuchsia-300',
-                    )}
-                  >
-                    <p className="font-semibold text-sm">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
-                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
-                  </button>
+                    preset={preset}
+                    selected={customize.lightingPresetId === preset.id}
+                    onSelect={() => setCustomize({ lightingPresetId: preset.id })}
+                  />
                 ))}
               </div>
               {customize.lightingPresetId && (
@@ -197,21 +238,12 @@ export function CustomizeStep() {
               <Label className="text-xs flex items-center gap-1 mb-2"><Palette className="w-3.5 h-3.5" />색보정 · 무드</Label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {MOOD_PRESETS.map((preset) => (
-                  <button
+                  <AestheticPresetCard
                     key={preset.id}
-                    type="button"
-                    onClick={() => setCustomize({ moodPresetId: preset.id })}
-                    className={cn(
-                      'rounded-lg border-2 p-3 text-left transition-all',
-                      customize.moodPresetId === preset.id
-                        ? 'border-fuchsia-500 bg-background shadow-sm'
-                        : 'border-border bg-background/70 hover:border-fuchsia-300',
-                    )}
-                  >
-                    <p className="font-semibold text-sm">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
-                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
-                  </button>
+                    preset={preset}
+                    selected={customize.moodPresetId === preset.id}
+                    onSelect={() => setCustomize({ moodPresetId: preset.id })}
+                  />
                 ))}
               </div>
               {customize.moodPresetId && (
@@ -222,21 +254,12 @@ export function CustomizeStep() {
               <Label className="text-xs flex items-center gap-1 mb-2"><ImageIcon className="w-3.5 h-3.5" />배경 프리셋</Label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {BACKGROUND_PRESETS.map((preset) => (
-                  <button
+                  <AestheticPresetCard
                     key={preset.id}
-                    type="button"
-                    onClick={() => setCustomize({ backgroundPresetId: preset.id, background: undefined })}
-                    className={cn(
-                      'rounded-lg border-2 p-3 text-left transition-all',
-                      customize.backgroundPresetId === preset.id
-                        ? 'border-fuchsia-500 bg-background shadow-sm'
-                        : 'border-border bg-background/70 hover:border-fuchsia-300',
-                    )}
-                  >
-                    <p className="font-semibold text-sm">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
-                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
-                  </button>
+                    preset={preset}
+                    selected={customize.backgroundPresetId === preset.id}
+                    onSelect={() => setCustomize({ backgroundPresetId: preset.id, background: undefined })}
+                  />
                 ))}
               </div>
               {customize.backgroundPresetId && (
@@ -247,21 +270,12 @@ export function CustomizeStep() {
               <Label className="text-xs flex items-center gap-1 mb-2"><Smile className="w-3.5 h-3.5" />메이크업 · 그루밍</Label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {MAKEUP_PRESETS.map((preset) => (
-                  <button
+                  <AestheticPresetCard
                     key={preset.id}
-                    type="button"
-                    onClick={() => setCustomize({ makeupPresetId: preset.id })}
-                    className={cn(
-                      'rounded-lg border-2 p-3 text-left transition-all',
-                      customize.makeupPresetId === preset.id
-                        ? 'border-fuchsia-500 bg-background shadow-sm'
-                        : 'border-border bg-background/70 hover:border-fuchsia-300',
-                    )}
-                  >
-                    <p className="font-semibold text-sm">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
-                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
-                  </button>
+                    preset={preset}
+                    selected={customize.makeupPresetId === preset.id}
+                    onSelect={() => setCustomize({ makeupPresetId: preset.id })}
+                  />
                 ))}
               </div>
               {customize.makeupPresetId && (

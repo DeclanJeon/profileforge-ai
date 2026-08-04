@@ -14,6 +14,7 @@ export interface LightingPreset {
   prompt: string
   negative?: string
   intensity: AestheticIntensity
+  thumbnailPath?: string
 }
 
 export interface MoodPreset {
@@ -25,6 +26,7 @@ export interface MoodPreset {
   prompt: string
   negative?: string
   intensity: AestheticIntensity
+  thumbnailPath?: string
 }
 
 export const LIGHTING_PRESETS: LightingPreset[] = [
@@ -38,6 +40,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'Rembrandt portrait lighting: key light about 45 degrees off camera, soft triangular highlight on the far cheek, gentle falloff into shadow, natural catchlights in the eyes',
     negative: 'flat lighting, overexposed face, harsh clipped highlights',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/light/light-rembrandt.webp',
   },
   {
     id: 'light-butterfly',
@@ -49,6 +52,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'butterfly beauty lighting from slightly above camera, soft even key, subtle nose shadow, flattering cheek definition, clean beauty-portrait look',
     negative: 'uneven color cast, muddy shadows under eyes',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/light/light-butterfly.webp',
   },
   {
     id: 'light-golden-hour',
@@ -60,6 +64,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'golden-hour natural light, warm low sun as key, soft rim light on hair and shoulders, gentle lens bloom, outdoor portrait atmosphere',
     negative: 'cold fluorescent cast, harsh midday overhead sun',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/light/light-golden-hour.webp',
   },
   {
     id: 'light-blue-hour',
@@ -71,6 +76,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'blue-hour ambient light, cool twilight sky fill, subtle warm practical lights in background, calm evening portrait mood',
     negative: 'daytime sunny look, neon overload',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/light/light-blue-hour.webp',
   },
   {
     id: 'light-neon-rim',
@@ -82,6 +88,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'cinematic neon rim lighting with restrained magenta and cyan edge lights, controlled face exposure, stylish night-city portrait without drowning identity in color',
     negative: 'face fully covered in neon color, unreadable features',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/light/light-neon-rim.webp',
   },
   {
     id: 'light-softbox-beauty',
@@ -93,6 +100,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'large softbox beauty lighting, smooth wraparound diffusion, minimal hard shadows, commercial clean-skin portrait light',
     negative: 'speckled harsh flash, raccoon eye shadows',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/light/light-softbox-beauty.webp',
   },
   {
     id: 'light-high-key',
@@ -104,6 +112,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'high-key studio lighting on bright near-white backdrop, airy exposure, soft shadows almost lifted, clean modern headshot',
     negative: 'crushed blacks, gloomy underexposure',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/light/light-high-key.webp',
   },
   {
     id: 'light-low-key-noir',
@@ -115,6 +124,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'low-key noir lighting, deep negative fill, single directional key, dramatic shadow play while keeping eyes readable',
     negative: 'flat gray muddiness, lost facial identity in pure black',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/light/light-low-key-noir.webp',
   },
   {
     id: 'light-window-soft',
@@ -126,6 +136,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'soft window light from camera left, gentle indoor ambient bounce, realistic room falloff, lifestyle portrait lighting',
     negative: 'mixed ugly green indoor cast, blown window highlight on face',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/light/light-window-soft.webp',
   },
   {
     id: 'light-practical-warm',
@@ -137,6 +148,7 @@ export const LIGHTING_PRESETS: LightingPreset[] = [
       'warm practical lamp lighting, cozy indoor key with soft falloff, subtle background practicals, intimate evening portrait',
     negative: 'orange skin clipping, unnaturally red face',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/light/light-practical-warm.webp',
   },
 ]
 
@@ -151,6 +163,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'teal-and-orange cinematic color grade, controlled contrast, rich but natural skin tones, film-still finishing',
     negative: 'cartoonish HDR, neon skin, overcooked orange face',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/mood/mood-teal-orange.webp',
   },
   {
     id: 'mood-warm-film',
@@ -162,6 +175,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'warm film color grade, gentle halation, slight grain, nostalgic amber highlights with printable skin',
     negative: 'heavy vintage filter covering face, sepia wash',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/mood/mood-warm-film.webp',
   },
   {
     id: 'mood-cool-editorial',
@@ -173,6 +187,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'cool editorial color grade, clean desaturated shadows, crisp midtones, modern magazine finish',
     negative: 'sickly cyan skin, lifeless gray face',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/mood/mood-cool-editorial.webp',
   },
   {
     id: 'mood-soft-pastel',
@@ -184,6 +199,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'soft pastel color mood, airy lifted shadows, gentle pink-cream highlights, flattering beauty grade',
     negative: 'oversaturated candy colors, plastic skin',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/mood/mood-soft-pastel.webp',
   },
   {
     id: 'mood-high-contrast-bw',
@@ -195,6 +211,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'high-contrast black-and-white portrait grade, deep blacks, bright eye highlights, classic mono photography finish',
     negative: 'color tint remaining, muddy mid-gray only',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/mood/mood-high-contrast-bw.webp',
   },
   {
     id: 'mood-creamy-beauty',
@@ -206,6 +223,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'creamy beauty color grade, smooth luminous skin rendering, soft highlight roll-off, commercial clean finish while keeping pores natural',
     negative: 'wax doll skin, poreless plastic face',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/mood/mood-creamy-beauty.webp',
   },
   {
     id: 'mood-moody-desat',
@@ -217,6 +235,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'moody desaturated grade, restrained palette, soft contrast curve, contemplative cinematic portrait finish',
     negative: 'washed-out identity, green muddy skin',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/mood/mood-moody-desat.webp',
   },
   {
     id: 'mood-fresh-daylight',
@@ -228,6 +247,7 @@ export const MOOD_PRESETS: MoodPreset[] = [
       'fresh daylight color grade, clean whites, healthy natural skin, bright but not blown lifestyle portrait finish',
     negative: 'yellow indoor cast, dull underexposure',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/mood/mood-fresh-daylight.webp',
   },
 ]
 
@@ -249,6 +269,7 @@ export interface BackgroundPreset {
   prompt: string
   negative?: string
   intensity: AestheticIntensity
+  thumbnailPath?: string
 }
 
 export interface MakeupPreset {
@@ -260,6 +281,7 @@ export interface MakeupPreset {
   prompt: string
   negative?: string
   intensity: AestheticIntensity
+  thumbnailPath?: string
 }
 
 export const BACKGROUND_PRESETS: BackgroundPreset[] = [
@@ -272,6 +294,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'clean soft gray seamless studio backdrop, subtle gradient, uncluttered professional portrait background',
     negative: 'busy clutter, text, logos',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-studio-soft-gray.webp',
   },
   {
     id: 'bg-studio-high-key-white',
@@ -282,6 +305,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'bright high-key near-white studio seamless, airy and clean, commercial headshot background',
     negative: 'gray muddy backdrop, clutter',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-studio-high-key-white.webp',
   },
   {
     id: 'bg-studio-matte-black',
@@ -292,6 +316,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'matte black seamless studio backdrop, deep negative space, premium dark portrait environment',
     negative: 'crushed unreadable silhouette, clutter',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/background/bg-studio-matte-black.webp',
   },
   {
     id: 'bg-studio-warm-beige',
@@ -302,6 +327,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'warm beige beauty studio backdrop, soft neutral tones, flattering commercial portrait environment',
     negative: 'orange color cast on skin, busy props',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-studio-warm-beige.webp',
   },
   {
     id: 'bg-studio-gradient-blue',
@@ -312,6 +338,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'soft blue gradient studio backdrop, modern and calm, subtle depth without patterns',
     negative: 'neon overload, harsh banding',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-studio-gradient-blue.webp',
   },
   {
     id: 'bg-cafe-window',
@@ -322,6 +349,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'sunlit cafe interior background with window light, soft bokeh cups and wood textures, lifestyle portrait setting',
     negative: 'readable brand logos, messy clutter dominating face',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/background/bg-cafe-window.webp',
   },
   {
     id: 'bg-city-sidewalk',
@@ -332,6 +360,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'modern city sidewalk background with soft street bokeh, natural urban depth, lifestyle environmental portrait setting',
     negative: 'readable store logos, crowded faces in background',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/background/bg-city-sidewalk.webp',
   },
   {
     id: 'bg-park-greenery',
@@ -342,6 +371,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'park greenery bokeh background, soft leaves and natural daylight depth, fresh outdoor lifestyle setting',
     negative: 'insect closeups, messy trash, harsh sun flare covering face',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-park-greenery.webp',
   },
   {
     id: 'bg-rooftop-golden',
@@ -352,6 +382,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'rooftop golden-hour city skyline softly blurred, warm evening atmosphere, cinematic lifestyle background',
     negative: 'unreadable face in backlight, heavy lens dirt',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/background/bg-rooftop-golden.webp',
   },
   {
     id: 'bg-home-office',
@@ -362,6 +393,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'tidy home-office background with desk and soft window light, lightly blurred shelves, professional remote-work setting',
     negative: 'messy cables dominating frame, readable screen content',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/background/bg-home-office.webp',
   },
   {
     id: 'bg-neon-alley',
@@ -372,6 +404,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'rain-kissed neon alley background with magenta-cyan bokeh, cinematic night-city depth, stylish environmental portrait setting',
     negative: 'face drowned in neon, unreadable identity',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/background/bg-neon-alley.webp',
   },
   {
     id: 'bg-library-warm',
@@ -382,6 +415,7 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     prompt: 'warm library or study interior background with soft book bokeh and practical lamp glow, intellectual cinematic atmosphere',
     negative: 'unreadable tiny text focus, dusty haze covering face',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/background/bg-library-warm.webp',
   },
 ]
 
@@ -395,6 +429,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'no-makeup makeup look: even natural skin, soft brows, sheer lip tint, subtle lashes, realistic pores preserved, identity-first beauty finish',
     negative: 'heavy contour, cakey foundation, plastic skin',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-no-makeup.webp',
   },
   {
     id: 'makeup-soft-glam',
@@ -405,6 +440,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'soft glam makeup: luminous skin, softly blended neutral eyeshadow, defined lashes, softly tinted lips, elegant but wearable',
     negative: 'overdrawn heavy drag makeup, muddy eyeshadow',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-soft-glam.webp',
   },
   {
     id: 'makeup-smoky-evening',
@@ -415,6 +451,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'refined smoky evening makeup: blended charcoal-brown eyes, clean skin base, softly matte or satin lip, elegant night-out finish without costume makeup',
     negative: 'messy fallout, raccoon eyes, halloween makeup',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-smoky-evening.webp',
   },
   {
     id: 'makeup-fresh-dewy',
@@ -425,6 +462,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'fresh dewy makeup: hydrated glow on high points, sheer healthy flush, clean brows, natural lip, youthful fresh finish with visible skin texture',
     negative: 'greasy shine, glitter overload, poreless plastic skin',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-fresh-dewy.webp',
   },
   {
     id: 'makeup-glass-skin',
@@ -435,6 +473,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'K-beauty glass-skin makeup: translucent luminous base, soft gradient lips, delicate blush, clean lashes, refined natural identity-preserving finish',
     negative: 'heavy western contour, matte cakey base',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-glass-skin.webp',
   },
   {
     id: 'makeup-clean-girl',
@@ -445,6 +484,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'clean-girl makeup aesthetic: sleek natural base, brushed brows, glossy neutral lip, subtle cream blush, polished minimal finish',
     negative: 'heavy smoky eyes, overlined dramatic lips',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-clean-girl.webp',
   },
   {
     id: 'makeup-office-polished',
@@ -455,6 +495,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'office-polished makeup: even natural base, soft brown eye definition, nude-rose lip, tidy brows, professional credible finish',
     negative: 'party glitter, extreme contour',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-office-polished.webp',
   },
   {
     id: 'makeup-warm-bronze',
@@ -465,6 +506,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'warm bronze makeup: soft bronzed complexion, warm brown eyes, peachy nude lip, sun-kissed but realistic finish',
     negative: 'orange fake tan streaks, muddy bronzer patches',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-warm-bronze.webp',
   },
   {
     id: 'makeup-cool-rose',
@@ -475,6 +517,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'cool rose makeup: soft rose blush, muted rose lip, clean cool-toned base, refined modern portrait finish',
     negative: 'overly pink cartoon blush, warm orange clash',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-cool-rose.webp',
   },
   {
     id: 'makeup-editorial-liner',
@@ -485,6 +528,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'editorial graphic liner makeup kept wearable: precise eyeliner accent, clean skin, soft lip, fashion-portrait finish without extreme avant-garde distortion',
     negative: 'face-obscuring avant-garde paint, costume face art',
     intensity: 'strong',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-editorial-liner.webp',
   },
   {
     id: 'makeup-red-lip-classic',
@@ -495,6 +539,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'classic red-lip makeup: polished skin, softly defined eyes, precise classic red lip, timeless glam portrait finish',
     negative: 'smudged lipstick on teeth, uneven lip line',
     intensity: 'balanced',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-red-lip-classic.webp',
   },
   {
     id: 'makeup-mens-groomed',
@@ -505,6 +550,7 @@ export const MAKEUP_PRESETS: MakeupPreset[] = [
     prompt: 'natural mens grooming finish: even skin tone, reduced redness, tidy brows, subtle matte-to-natural sheen, no feminine full-glam makeup look, identity-preserving',
     negative: 'heavy foundation mask, lipstick, dramatic eyeshadow',
     intensity: 'subtle',
+    thumbnailPath: '/style-thumbnails/makeup/makeup-mens-groomed.webp',
   },
 ]
 
