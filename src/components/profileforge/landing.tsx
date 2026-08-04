@@ -44,7 +44,7 @@ const USE_CASES = [
 
 const FLOW = [
   { icon: Upload, title: '1. 업로드', desc: '얼굴이 잘 보이는 사진 1~5장 드래그 앤 드롭' },
-  { icon: Wand2, title: '2. 컨셉 선택', desc: '9개 카테고리 50+ 컨셉 중 선택' },
+  { icon: Wand2, title: '2. 컨셉 선택', desc: '9개 카테고리 80+ 컨셉 중 선택' },
   { icon: Sparkles, title: '3. 자동 생성', desc: '기본 1장, 필요하면 최대 4장까지 생성' },
   { icon: Download, title: '4. 이메일 수령', desc: '완료 후 결과 이미지를 첨부파일로 저장' },
 ]

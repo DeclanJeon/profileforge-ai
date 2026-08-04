@@ -199,6 +199,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         fashionPresetId: get().customize.fashionPresetId,
         hairPresetId: get().customize.hairPresetId,
         cameraShotId: get().customize.cameraShotId,
+        lightingPresetId: get().customize.lightingPresetId,
+        moodPresetId: get().customize.moodPresetId,
         customStyleNote: get().customize.customStyleNote,
         creativity: concept.defaultCreativity,
         aspectRatio: concept.defaultAspect,

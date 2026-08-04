@@ -122,6 +122,8 @@ export function GenerateStep() {
           fashionPresetId: customize.fashionPresetId,
           hairPresetId: customize.hairPresetId,
           cameraShotId: customize.cameraShotId,
+          lightingPresetId: customize.lightingPresetId,
+          moodPresetId: customize.moodPresetId,
           customStyleNote: customize.customStyleNote,
           thumbnailPrompt: selectedConcept.thumbnailPrompt,
         }),

@@ -4,6 +4,7 @@
  */
 import { Concept } from './concepts'
 import { StyleMode, findCameraShotPreset, findFashionPreset, findHairPreset } from './style-presets'
+import { findLightingPreset, findMoodPreset } from './aesthetic-presets'
 
 export interface CustomizeOptions {
   /** 0=보수적, 50=균형, 100=창의적 */
@@ -16,6 +17,8 @@ export interface CustomizeOptions {
   fashionPresetId?: string
   hairPresetId?: string
   cameraShotId?: string
+  lightingPresetId?: string
+  moodPresetId?: string
   customStyleNote?: string
   /** 표정 오버라이드 */
   expression?: string
@@ -243,6 +246,48 @@ const CONCEPT_DETAIL_PROMPTS: Record<string, string> = {
   'art-pop-art':
     'Concept-specific direction: bold pop-art avatar, vivid color blocks, comic-inspired halftone texture, confident expression, graphic close-up crop, clean silhouette, energetic creator profile style while preserving recognizable identity cues.',
 
+
+  'pro-remote-desk':
+    'Concept-specific direction: remote professional desk portrait, smart casual layers, tidy home office with laptop softly blurred, soft window daylight, calm focused expression, square or waist-up framing.',
+  'pro-healthcare-trust':
+    'Concept-specific direction: healthcare trust portrait, clean professional attire without official insignia, bright clinic-inspired interior, even soft light, warm trustworthy smile, half-body framing.',
+  'social-spring-picnic':
+    'Concept-specific direction: spring picnic lifestyle portrait, light casual layers, park greenery and soft blanket context, bright daylight, fresh relaxed smile, half-body environmental framing.',
+  'social-rainy-city':
+    'Concept-specific direction: rainy city mood portrait, trench coat, wet reflective pavement, overcast sky with warm shop-window accents, quiet contemplative glance, cinematic half-body framing.',
+  'social-winter-coat':
+    'Concept-specific direction: winter coat editorial portrait, structured coat and scarf, frosty urban path, cool daylight highlights, confident calm gaze, three-quarter body framing.',
+  'social-y2k-street':
+    'Concept-specific direction: Y2K street portrait, playful logo-free streetwear, sunlit city street, colorful bounce light, playful confident smile, energetic square crop.',
+  'editorial-golden-hour-cine':
+    'Concept-specific direction: golden-hour cinematic editorial, elevated casual layers, outdoor sunset rooftop or field, warm backlight with soft fill, soft filmic gaze, three-quarter framing.',
+  'editorial-neon-street':
+    'Concept-specific direction: neon street editorial, dark tailored layers, rain-kissed neon alley bokeh, magenta-cyan rim light with readable face, cool focused stare, half-body cinematic crop.',
+  'editorial-soft-glam':
+    'Concept-specific direction: soft glam beauty editorial, elegant clean neckline, seamless beauty studio, butterfly lighting, poised glam expression, tight headshot framing.',
+  'editorial-clean-beauty':
+    'Concept-specific direction: clean beauty natural portrait, minimal neutral top, airy high-key studio, large softbox light, fresh natural presence, pore-preserving skin, headshot framing.',
+  'creator-youtube-thumbnail':
+    'Concept-specific direction: YouTube-thumbnail energy creator portrait, bold casual outfit without logos, colorful clean backdrop, bright high-key light, high-energy engaging expression, punchy half-body crop.',
+  'creator-cafe-brand':
+    'Concept-specific direction: cafe brand creator portrait, relaxed smart-casual layers, sunlit cafe interior wood textures, warm window light, friendly brand-ready smile, lifestyle half-body framing.',
+  'creator-minimal-black':
+    'Concept-specific direction: minimal black studio creator portrait, all-black layers, matte black seamless, soft key with subtle rim, quiet confident stare, clean headshot branding look.',
+  'cosplay-mecha-pilot':
+    'Concept-specific direction: original mecha pilot cosplay, utility harness pilot suit without franchise marks, hangar bay mechanical bokeh, cool practical rim light, focused mission-ready expression, three-quarter framing.',
+  'fantasy-court-mage':
+    'Concept-specific direction: court mage fantasy portrait, ornate original embroidered mage coat, candlelit palace corridor, warm candle key with cool moon fill, composed arcane intellect, three-quarter regal framing.',
+  'scifi-neon-hacker':
+    'Concept-specific direction: neon netrunner sci-fi portrait, techwear layers with subtle glow accents and no logos, rainy cyber alley holographic bokeh, cyan-magenta rim light, sharp analytical stare, half-body framing.',
+  'art-clay-3d':
+    'Concept-specific direction: clay 3D avatar portrait, simplified stylized clothing forms, soft pastel studio void, toy-like studio lighting, friendly stylized smile, icon-readable bust framing while preserving identity cues.',
+  'art-linocut':
+    'Concept-specific direction: linocut print portrait, graphic simplified clothing shapes, textured paper field, bold print contrast, strong silhouette readability, identity-preserving graphic avatar.',
+  'art-anime-soft':
+    'Concept-specific direction: soft anime portrait avatar, simple original casual outfit, gentle gradient backdrop, cel-shaded light, illustrated smile, recognizable face structure preserved, no copyrighted character design.',
+  'social-smart-casual-street':
+    'Concept-specific direction: smart casual street portrait, polished logo-free casual outfit, modern sidewalk bokeh, balanced daylight, easy natural confidence, half-body daily branding crop.',
+
   'anime-monster-partner-adventurer':
     'Concept-specific direction: original late-90s monster-partner adventure anime inspired profile, not based on any existing character. Adventure goggles-inspired headwear without copying franchise designs, layered camp jacket, fingerless travel gloves, compact backpack, bright summer adventure field, small original companion-creature silhouette blurred in background that does not resemble any known mascot, energetic three-quarter or full-body expedition pose, warm daylight and abstract digital sparkle atmosphere. No franchise logo, no exact character outfit, no recognizable creature.',
   'anime-stadium-trainer':
@@ -296,6 +341,8 @@ export const buildPrompts = (
   const fashionPreset = findFashionPreset(options.fashionPresetId)
   const hairPreset = findHairPreset(options.hairPresetId)
   const cameraShot = findCameraShotPreset(options.cameraShotId)
+  const lightingPreset = findLightingPreset(options.lightingPresetId)
+  const moodPreset = findMoodPreset(options.moodPresetId)
   const customStyleNote = sanitizeCustomStyleNote(options.customStyleNote)
 
   const fashionBlock = (options.styleMode === 'fashion' || options.styleMode === 'makeover') && fashionPreset
@@ -306,6 +353,12 @@ export const buildPrompts = (
     : ''
   const cameraBlock = cameraShot
     ? `Camera direction: ${cameraShot.prompt}. Create visible framing, pose, or camera-angle variation while preserving identity and avoiding the uploaded source pose/crop.`
+    : ''
+  const lightingPresetBlock = lightingPreset
+    ? `Lighting preset: ${lightingPreset.prompt}. Keep face readable and natural skin response under this lighting.`
+    : ''
+  const moodPresetBlock = moodPreset
+    ? `Color mood grade: ${moodPreset.prompt}. Preserve natural skin identity while applying the grade.`
     : ''
   const customBlock = customStyleNote
     ? `User style note, subordinate to safety and preset instructions: ${customStyleNote}.`
@@ -343,6 +396,8 @@ export const buildPrompts = (
     fashionBlock,
     hairBlock,
     cameraBlock,
+    lightingPresetBlock,
+    moodPresetBlock,
     customBlock,
     ipSafety,
     `Create a ${useCase} image in the concept style: "${modelConceptName}".`,
@@ -376,6 +431,8 @@ export const buildPrompts = (
       fashionPreset?.negative,
       hairPreset?.negative,
       cameraShot?.negative,
+      lightingPreset?.negative,
+      moodPreset?.negative,
       'wig-like hair, floating hair, distorted hairline, warped fabric, melted clothing, changed body proportions, duplicated limbs, impossible anatomy, extreme motion blur',
     ].filter(Boolean).join(', '),
     aspectRatio: options.aspectRatio,
