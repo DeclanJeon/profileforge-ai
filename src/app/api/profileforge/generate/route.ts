@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { uploadFileUrlToLocalPath } from '@/lib/profileforge/image-provider'
 import { CONCEPTS } from '@/lib/profileforge/concepts'
 import { ALL_STYLE_CONCEPTS, StyleMode, findCameraShotPreset, findFashionPreset, findHairPreset, isStyleMode } from '@/lib/profileforge/style-presets'
-import { findLightingPreset, findMoodPreset } from '@/lib/profileforge/aesthetic-presets'
+import { findBackgroundPreset, findLightingPreset, findMakeupPreset, findMoodPreset } from '@/lib/profileforge/aesthetic-presets'
 import { buildPrompts, CustomizeOptions, sanitizeCustomStyleNote } from '@/lib/profileforge/prompt-builder'
 import { profileForgeConfig } from '@/lib/profileforge/config'
 import { authOptions, normalizeAuthEmail } from '@/lib/auth'
@@ -35,6 +35,8 @@ interface GenerateRequest {
   cameraShotId?: string
   lightingPresetId?: string
   moodPresetId?: string
+  backgroundPresetId?: string
+  makeupPresetId?: string
   customStyleNote?: string
 }
 
@@ -278,6 +280,8 @@ export async function POST(req: NextRequest) {
     const cameraShot = findCameraShotPreset(body.cameraShotId)
     const lightingPreset = findLightingPreset(body.lightingPresetId)
     const moodPreset = findMoodPreset(body.moodPresetId)
+    const backgroundPreset = findBackgroundPreset(body.backgroundPresetId)
+    const makeupPreset = findMakeupPreset(body.makeupPresetId)
     const expectedStyleConceptId = styleMode === 'profile' ? null : `style-${styleMode}`
     if (styleMode === 'profile' && concept.id.startsWith('style-')) {
       return NextResponse.json({ error: '스타일 전용 컨셉은 스타일 모드가 필요합니다.' }, { status: 400 })
@@ -312,6 +316,12 @@ export async function POST(req: NextRequest) {
     if (body.moodPresetId && !moodPreset) {
       return NextResponse.json({ error: '지원하지 않는 무드 프리셋입니다.' }, { status: 400 })
     }
+    if (body.backgroundPresetId && !backgroundPreset) {
+      return NextResponse.json({ error: '지원하지 않는 배경 프리셋입니다.' }, { status: 400 })
+    }
+    if (body.makeupPresetId && !makeupPreset) {
+      return NextResponse.json({ error: '지원하지 않는 메이크업 프리셋입니다.' }, { status: 400 })
+    }
     const normalizedEmail = authEmail
     const safeResultCount = Math.max(1, Math.min(profileForgeConfig.queue.maxResultCount, body.resultCount || profileForgeConfig.queue.defaultResultCount))
     const customizeOptions: CustomizeOptions = {
@@ -327,6 +337,8 @@ export async function POST(req: NextRequest) {
       cameraShotId: cameraShot?.id,
       lightingPresetId: lightingPreset?.id,
       moodPresetId: moodPreset?.id,
+      backgroundPresetId: backgroundPreset?.id,
+      makeupPresetId: makeupPreset?.id,
       customStyleNote: sanitizeCustomStyleNote(body.customStyleNote),
     }
     const builtPrompts = buildPrompts(concept, customizeOptions)
@@ -387,6 +399,8 @@ export async function POST(req: NextRequest) {
       cameraShotId: customizeOptions.cameraShotId,
       lightingPresetId: customizeOptions.lightingPresetId,
       moodPresetId: customizeOptions.moodPresetId,
+      backgroundPresetId: customizeOptions.backgroundPresetId,
+      makeupPresetId: customizeOptions.makeupPresetId,
       customStyleNote: customizeOptions.customStyleNote,
       positivePrompt: builtPrompts.positive,
       negativePrompt: builtPrompts.negative,
@@ -436,6 +450,8 @@ export async function POST(req: NextRequest) {
             cameraShotId: customizeOptions.cameraShotId,
             lightingPresetId: customizeOptions.lightingPresetId,
             moodPresetId: customizeOptions.moodPresetId,
+            backgroundPresetId: customizeOptions.backgroundPresetId,
+            makeupPresetId: customizeOptions.makeupPresetId,
             customStyleNote: customizeOptions.customStyleNote,
             aspectRatio: customizeOptions.aspectRatio,
             resultCount: safeResultCount,

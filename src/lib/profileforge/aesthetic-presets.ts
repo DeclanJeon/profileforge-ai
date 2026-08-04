@@ -238,3 +238,280 @@ export function findLightingPreset(id?: string | null) {
 export function findMoodPreset(id?: string | null) {
   return id ? MOOD_PRESETS.find((preset) => preset.id === id) ?? null : null
 }
+
+
+export interface BackgroundPreset {
+  id: string
+  name: string
+  category: string
+  description: string
+  tags: string[]
+  prompt: string
+  negative?: string
+  intensity: AestheticIntensity
+}
+
+export interface MakeupPreset {
+  id: string
+  name: string
+  category: string
+  description: string
+  tags: string[]
+  prompt: string
+  negative?: string
+  intensity: AestheticIntensity
+}
+
+export const BACKGROUND_PRESETS: BackgroundPreset[] = [
+  {
+    id: 'bg-studio-soft-gray',
+    name: '소프트 그레이 스튜디오',
+    category: 'Studio',
+    description: '깔끔한 연회색 스튜디오 배경',
+    tags: ['스튜디오', '미니멀', '프로'],
+    prompt: 'clean soft gray seamless studio backdrop, subtle gradient, uncluttered professional portrait background',
+    negative: 'busy clutter, text, logos',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-studio-high-key-white',
+    name: '하이키 화이트 스튜디오',
+    category: 'Studio',
+    description: '밝고 깨끗한 화이트 스튜디오',
+    tags: ['화이트', '하이키', '클린'],
+    prompt: 'bright high-key near-white studio seamless, airy and clean, commercial headshot background',
+    negative: 'gray muddy backdrop, clutter',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-studio-matte-black',
+    name: '매트 블랙 스튜디오',
+    category: 'Studio',
+    description: '깊은 매트 블랙 스튜디오 배경',
+    tags: ['블랙', '드라마', '미니멀'],
+    prompt: 'matte black seamless studio backdrop, deep negative space, premium dark portrait environment',
+    negative: 'crushed unreadable silhouette, clutter',
+    intensity: 'balanced',
+  },
+  {
+    id: 'bg-studio-warm-beige',
+    name: '웜 베이지 스튜디오',
+    category: 'Studio',
+    description: '따뜻한 베이지 톤의 뷰티 스튜디오',
+    tags: ['베이지', '뷰티', '웜'],
+    prompt: 'warm beige beauty studio backdrop, soft neutral tones, flattering commercial portrait environment',
+    negative: 'orange color cast on skin, busy props',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-studio-gradient-blue',
+    name: '블루 그라데이션 스튜디오',
+    category: 'Studio',
+    description: '은은한 블루 그라데이션 배경',
+    tags: ['블루', '그라데이션', '모던'],
+    prompt: 'soft blue gradient studio backdrop, modern and calm, subtle depth without patterns',
+    negative: 'neon overload, harsh banding',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-cafe-window',
+    name: '카페 윈도우',
+    category: 'Lifestyle',
+    description: '창가 카페의 라이프스타일 배경',
+    tags: ['카페', '라이프', '실내'],
+    prompt: 'sunlit cafe interior background with window light, soft bokeh cups and wood textures, lifestyle portrait setting',
+    negative: 'readable brand logos, messy clutter dominating face',
+    intensity: 'balanced',
+  },
+  {
+    id: 'bg-city-sidewalk',
+    name: '시티 사이드워크',
+    category: 'Lifestyle',
+    description: '도심 보도의 자연스러운 거리 배경',
+    tags: ['도시', '스트릿', '야외'],
+    prompt: 'modern city sidewalk background with soft street bokeh, natural urban depth, lifestyle environmental portrait setting',
+    negative: 'readable store logos, crowded faces in background',
+    intensity: 'balanced',
+  },
+  {
+    id: 'bg-park-greenery',
+    name: '파크 그린',
+    category: 'Lifestyle',
+    description: '공원 녹음 보케 배경',
+    tags: ['공원', '자연', '그린'],
+    prompt: 'park greenery bokeh background, soft leaves and natural daylight depth, fresh outdoor lifestyle setting',
+    negative: 'insect closeups, messy trash, harsh sun flare covering face',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-rooftop-golden',
+    name: '루프탑 골든아워',
+    category: 'Lifestyle',
+    description: '해질녘 루프탑 시티 스카이라인',
+    tags: ['루프탑', '골든아워', '시티'],
+    prompt: 'rooftop golden-hour city skyline softly blurred, warm evening atmosphere, cinematic lifestyle background',
+    negative: 'unreadable face in backlight, heavy lens dirt',
+    intensity: 'balanced',
+  },
+  {
+    id: 'bg-home-office',
+    name: '홈 오피스',
+    category: 'Lifestyle',
+    description: '정돈된 재택 데스크 환경',
+    tags: ['데스크', '리모트', '실내'],
+    prompt: 'tidy home-office background with desk and soft window light, lightly blurred shelves, professional remote-work setting',
+    negative: 'messy cables dominating frame, readable screen content',
+    intensity: 'subtle',
+  },
+  {
+    id: 'bg-neon-alley',
+    name: '네온 앨리',
+    category: 'Cinematic',
+    description: '네온 야경 골목의 시네마틱 배경',
+    tags: ['네온', '야경', '시네마'],
+    prompt: 'rain-kissed neon alley background with magenta-cyan bokeh, cinematic night-city depth, stylish environmental portrait setting',
+    negative: 'face drowned in neon, unreadable identity',
+    intensity: 'strong',
+  },
+  {
+    id: 'bg-library-warm',
+    name: '웜 라이브러리',
+    category: 'Cinematic',
+    description: '따뜻한 서재/도서관 분위기',
+    tags: ['서재', '책', '웜'],
+    prompt: 'warm library or study interior background with soft book bokeh and practical lamp glow, intellectual cinematic atmosphere',
+    negative: 'unreadable tiny text focus, dusty haze covering face',
+    intensity: 'balanced',
+  },
+]
+
+export const MAKEUP_PRESETS: MakeupPreset[] = [
+  {
+    id: 'makeup-no-makeup',
+    name: '노메이크업 메이크업',
+    category: 'Natural',
+    description: '거의 안 바른 듯 정돈된 자연 메이크업',
+    tags: ['내추럴', '클린', '데일리'],
+    prompt: 'no-makeup makeup look: even natural skin, soft brows, sheer lip tint, subtle lashes, realistic pores preserved, identity-first beauty finish',
+    negative: 'heavy contour, cakey foundation, plastic skin',
+    intensity: 'subtle',
+  },
+  {
+    id: 'makeup-soft-glam',
+    name: '소프트 글램',
+    category: 'Glam',
+    description: '부드러운 광택의 데이-투-나잇 글램',
+    tags: ['글램', '소프트', '광택'],
+    prompt: 'soft glam makeup: luminous skin, softly blended neutral eyeshadow, defined lashes, softly tinted lips, elegant but wearable',
+    negative: 'overdrawn heavy drag makeup, muddy eyeshadow',
+    intensity: 'balanced',
+  },
+  {
+    id: 'makeup-smoky-evening',
+    name: '스모키 이브닝',
+    category: 'Glam',
+    description: '저녁 행사에 맞는 절제된 스모키 룩',
+    tags: ['스모키', '이브닝', '드라마'],
+    prompt: 'refined smoky evening makeup: blended charcoal-brown eyes, clean skin base, softly matte or satin lip, elegant night-out finish without costume makeup',
+    negative: 'messy fallout, raccoon eyes, halloween makeup',
+    intensity: 'strong',
+  },
+  {
+    id: 'makeup-fresh-dewy',
+    name: '프레시 듀이',
+    category: 'Natural',
+    description: '촉촉하고 생기 있는 듀이 스킨',
+    tags: ['듀이', '생기', '촉촉'],
+    prompt: 'fresh dewy makeup: hydrated glow on high points, sheer healthy flush, clean brows, natural lip, youthful fresh finish with visible skin texture',
+    negative: 'greasy shine, glitter overload, poreless plastic skin',
+    intensity: 'subtle',
+  },
+  {
+    id: 'makeup-glass-skin',
+    name: '글래스 스킨',
+    category: 'K-beauty',
+    description: '맑고 투명한 K-뷰티 글래스 스킨',
+    tags: ['K뷰티', '글래스', '투명'],
+    prompt: 'K-beauty glass-skin makeup: translucent luminous base, soft gradient lips, delicate blush, clean lashes, refined natural identity-preserving finish',
+    negative: 'heavy western contour, matte cakey base',
+    intensity: 'balanced',
+  },
+  {
+    id: 'makeup-clean-girl',
+    name: '클린 걸',
+    category: 'Natural',
+    description: '정돈된 클린 걸 메이크업',
+    tags: ['클린', '미니멀', '트렌드'],
+    prompt: 'clean-girl makeup aesthetic: sleek natural base, brushed brows, glossy neutral lip, subtle cream blush, polished minimal finish',
+    negative: 'heavy smoky eyes, overlined dramatic lips',
+    intensity: 'subtle',
+  },
+  {
+    id: 'makeup-office-polished',
+    name: '오피스 폴리시드',
+    category: 'Professional',
+    description: '직장/미팅에 어울리는 단정한 메이크업',
+    tags: ['오피스', '단정', '프로'],
+    prompt: 'office-polished makeup: even natural base, soft brown eye definition, nude-rose lip, tidy brows, professional credible finish',
+    negative: 'party glitter, extreme contour',
+    intensity: 'subtle',
+  },
+  {
+    id: 'makeup-warm-bronze',
+    name: '웜 브론즈',
+    category: 'Glam',
+    description: '따뜻한 브론즈 톤의 선탠 글램',
+    tags: ['브론즈', '웜', '선탠'],
+    prompt: 'warm bronze makeup: soft bronzed complexion, warm brown eyes, peachy nude lip, sun-kissed but realistic finish',
+    negative: 'orange fake tan streaks, muddy bronzer patches',
+    intensity: 'balanced',
+  },
+  {
+    id: 'makeup-cool-rose',
+    name: '쿨 로즈',
+    category: 'Natural',
+    description: '쿨톤 로즈 블러셔와 립의 세련된 룩',
+    tags: ['쿨톤', '로즈', '세련'],
+    prompt: 'cool rose makeup: soft rose blush, muted rose lip, clean cool-toned base, refined modern portrait finish',
+    negative: 'overly pink cartoon blush, warm orange clash',
+    intensity: 'subtle',
+  },
+  {
+    id: 'makeup-editorial-liner',
+    name: '에디토리얼 라이너',
+    category: 'Editorial',
+    description: '절제된 그래픽 라이너의 화보 메이크업',
+    tags: ['라이너', '화보', '에디토리얼'],
+    prompt: 'editorial graphic liner makeup kept wearable: precise eyeliner accent, clean skin, soft lip, fashion-portrait finish without extreme avant-garde distortion',
+    negative: 'face-obscuring avant-garde paint, costume face art',
+    intensity: 'strong',
+  },
+  {
+    id: 'makeup-red-lip-classic',
+    name: '클래식 레드립',
+    category: 'Glam',
+    description: '클래식한 레드 립 포인트 메이크업',
+    tags: ['레드립', '클래식', '포인트'],
+    prompt: 'classic red-lip makeup: polished skin, softly defined eyes, precise classic red lip, timeless glam portrait finish',
+    negative: 'smudged lipstick on teeth, uneven lip line',
+    intensity: 'balanced',
+  },
+  {
+    id: 'makeup-mens-groomed',
+    name: '맨즈 그루밍',
+    category: 'Grooming',
+    description: '자연스러운 맨즈 스킨/브로우 그루밍',
+    tags: ['맨즈', '그루밍', '내추럴'],
+    prompt: 'natural mens grooming finish: even skin tone, reduced redness, tidy brows, subtle matte-to-natural sheen, no feminine full-glam makeup look, identity-preserving',
+    negative: 'heavy foundation mask, lipstick, dramatic eyeshadow',
+    intensity: 'subtle',
+  },
+]
+
+export function findBackgroundPreset(id?: string | null) {
+  return id ? BACKGROUND_PRESETS.find((preset) => preset.id === id) ?? null : null
+}
+
+export function findMakeupPreset(id?: string | null) {
+  return id ? MAKEUP_PRESETS.find((preset) => preset.id === id) ?? null : null
+}

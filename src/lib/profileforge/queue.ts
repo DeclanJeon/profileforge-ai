@@ -27,6 +27,8 @@ export function makeGenerationIdempotencyKey(input: {
   cameraShotId?: string
   lightingPresetId?: string
   moodPresetId?: string
+  backgroundPresetId?: string
+  makeupPresetId?: string
   customStyleNote?: string
   positivePrompt?: string
   negativePrompt?: string
@@ -57,6 +59,8 @@ export function makeGenerationIdempotencyKey(input: {
       input.cameraShotId || '',
       input.lightingPresetId || '',
       input.moodPresetId || '',
+      input.backgroundPresetId || '',
+      input.makeupPresetId || '',
       input.customStyleNote || '',
       promptHash,
     ].join(':'))

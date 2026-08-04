@@ -4,7 +4,7 @@
  */
 import { Concept } from './concepts'
 import { StyleMode, findCameraShotPreset, findFashionPreset, findHairPreset } from './style-presets'
-import { findLightingPreset, findMoodPreset } from './aesthetic-presets'
+import { findBackgroundPreset, findLightingPreset, findMakeupPreset, findMoodPreset } from './aesthetic-presets'
 
 export interface CustomizeOptions {
   /** 0=보수적, 50=균형, 100=창의적 */
@@ -19,6 +19,8 @@ export interface CustomizeOptions {
   cameraShotId?: string
   lightingPresetId?: string
   moodPresetId?: string
+  backgroundPresetId?: string
+  makeupPresetId?: string
   customStyleNote?: string
   /** 표정 오버라이드 */
   expression?: string
@@ -335,15 +337,17 @@ export const buildPrompts = (
   const skin = SKIN_LEVELS[options.skinRetouch]
 
   const outfit = options.outfit?.trim() || concept.outfit
-  const background = options.background?.trim() || concept.background
-  const lighting = options.lighting?.trim() || concept.lighting
-  const expression = options.expression?.trim() || concept.expression
   const fashionPreset = findFashionPreset(options.fashionPresetId)
   const hairPreset = findHairPreset(options.hairPresetId)
   const cameraShot = findCameraShotPreset(options.cameraShotId)
   const lightingPreset = findLightingPreset(options.lightingPresetId)
   const moodPreset = findMoodPreset(options.moodPresetId)
+  const backgroundPreset = findBackgroundPreset(options.backgroundPresetId)
+  const makeupPreset = findMakeupPreset(options.makeupPresetId)
   const customStyleNote = sanitizeCustomStyleNote(options.customStyleNote)
+  const background = options.background?.trim() || (backgroundPreset ? backgroundPreset.name + ' background' : concept.background)
+  const lighting = options.lighting?.trim() || (lightingPreset ? lightingPreset.name : concept.lighting)
+  const expression = options.expression?.trim() || concept.expression
 
   const fashionBlock = (options.styleMode === 'fashion' || options.styleMode === 'makeover') && fashionPreset
     ? `Fashion try-on instruction: Change only the outfit. Preserve the same face, identity, hairstyle, body shape, skin tone, and realistic lighting coherence. Replace clothing with: ${fashionPreset.prompt}. Make the outfit change visually obvious with realistic fabric folds, seams, fit, shadows, texture, and perspective. Do not change the face, hair, body proportions, hands, or background unless camera direction requires wider framing.`
@@ -359,6 +363,12 @@ export const buildPrompts = (
     : ''
   const moodPresetBlock = moodPreset
     ? `Color mood grade: ${moodPreset.prompt}. Preserve natural skin identity while applying the grade.`
+    : ''
+  const backgroundPresetBlock = backgroundPreset
+    ? `Background preset: ${backgroundPreset.prompt}. Replace or restyle the environment accordingly while keeping the subject identity stable.`
+    : ''
+  const makeupPresetBlock = makeupPreset
+    ? `Makeup/grooming preset: ${makeupPreset.prompt}. Change only makeup/grooming finish; preserve facial structure and identity; keep skin texture realistic.`
     : ''
   const customBlock = customStyleNote
     ? `User style note, subordinate to safety and preset instructions: ${customStyleNote}.`
@@ -398,6 +408,8 @@ export const buildPrompts = (
     cameraBlock,
     lightingPresetBlock,
     moodPresetBlock,
+    backgroundPresetBlock,
+    makeupPresetBlock,
     customBlock,
     ipSafety,
     `Create a ${useCase} image in the concept style: "${modelConceptName}".`,
@@ -433,6 +445,8 @@ export const buildPrompts = (
       cameraShot?.negative,
       lightingPreset?.negative,
       moodPreset?.negative,
+      backgroundPreset?.negative,
+      makeupPreset?.negative,
       'wig-like hair, floating hair, distorted hairline, warped fabric, melted clothing, changed body proportions, duplicated limbs, impossible anatomy, extreme motion blur',
     ].filter(Boolean).join(', '),
     aspectRatio: options.aspectRatio,

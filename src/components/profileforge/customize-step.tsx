@@ -33,7 +33,7 @@ import {
 import { CustomizeOptions, buildPrompts } from '@/lib/profileforge/prompt-builder'
 import { CATEGORY_LABELS } from '@/lib/profileforge/concepts'
 import { CAMERA_SHOT_PRESETS, FASHION_PRESETS, HAIR_PRESETS, STYLE_MODES } from '@/lib/profileforge/style-presets'
-import { LIGHTING_PRESETS, MOOD_PRESETS } from '@/lib/profileforge/aesthetic-presets'
+import { BACKGROUND_PRESETS, LIGHTING_PRESETS, MAKEUP_PRESETS, MOOD_PRESETS } from '@/lib/profileforge/aesthetic-presets'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 
@@ -79,6 +79,8 @@ export function CustomizeStep() {
   const selectedCamera = CAMERA_SHOT_PRESETS.find((preset) => preset.id === customize.cameraShotId)
   const selectedLighting = LIGHTING_PRESETS.find((preset) => preset.id === customize.lightingPresetId)
   const selectedMood = MOOD_PRESETS.find((preset) => preset.id === customize.moodPresetId)
+  const selectedBackground = BACKGROUND_PRESETS.find((preset) => preset.id === customize.backgroundPresetId)
+  const selectedMakeup = MAKEUP_PRESETS.find((preset) => preset.id === customize.makeupPresetId)
   const totalCost = selectedConcept.creditCost * customize.resultCount
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sessionEmail)
@@ -124,13 +126,16 @@ export function CustomizeStep() {
       <Card className="border-fuchsia-200 bg-fuchsia-50/40 dark:bg-fuchsia-950/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2"><Wand2 className="w-4 h-4" />스타일링 선택</CardTitle>
-            <CardDescription className="text-xs">카메라·조명·색보정 무드는 생성 프롬프트에 직접 반영됩니다. 패션/헤어는 해당 모드에서 함께 적용됩니다.</CardDescription>
+            <CardDescription className="text-xs">카메라·조명·무드·배경·메이크업은 생성 프롬프트에 직접 반영됩니다. 패션/헤어는 해당 모드에서 함께 적용됩니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-xs">
             <div className="grid md:grid-cols-3 gap-2">
               <InfoPill icon={Sparkles} label="모드" value={selectedMode?.label || '프로필 컨셉'} />
               <InfoPill icon={Lightbulb} label="조명" value={selectedLighting?.name || '컨셉 기본'} />
               <InfoPill icon={Palette} label="무드" value={selectedMood?.name || '컨셉 기본'} />
+              <InfoPill icon={ImageIcon} label="배경" value={selectedBackground?.name || '컨셉 기본'} />
+              <InfoPill icon={Smile} label="메이크업" value={selectedMakeup?.name || '컨셉 기본'} />
+              <InfoPill icon={Camera} label="카메라" value={selectedCamera?.name || '선택 없음'} />
             </div>
             {(selectedFashion || selectedHair) && (
               <div className="grid md:grid-cols-2 gap-2">
@@ -211,6 +216,56 @@ export function CustomizeStep() {
               </div>
               {customize.moodPresetId && (
                 <button type="button" className="mt-2 text-[11px] text-muted-foreground underline" onClick={() => setCustomize({ moodPresetId: undefined })}>무드 선택 해제 (컨셉 기본)</button>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1 mb-2"><ImageIcon className="w-3.5 h-3.5" />배경 프리셋</Label>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {BACKGROUND_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setCustomize({ backgroundPresetId: preset.id, background: undefined })}
+                    className={cn(
+                      'rounded-lg border-2 p-3 text-left transition-all',
+                      customize.backgroundPresetId === preset.id
+                        ? 'border-fuchsia-500 bg-background shadow-sm'
+                        : 'border-border bg-background/70 hover:border-fuchsia-300',
+                    )}
+                  >
+                    <p className="font-semibold text-sm">{preset.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
+                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
+                  </button>
+                ))}
+              </div>
+              {customize.backgroundPresetId && (
+                <button type="button" className="mt-2 text-[11px] text-muted-foreground underline" onClick={() => setCustomize({ backgroundPresetId: undefined })}>배경 선택 해제 (컨셉 기본)</button>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1 mb-2"><Smile className="w-3.5 h-3.5" />메이크업 · 그루밍</Label>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {MAKEUP_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setCustomize({ makeupPresetId: preset.id })}
+                    className={cn(
+                      'rounded-lg border-2 p-3 text-left transition-all',
+                      customize.makeupPresetId === preset.id
+                        ? 'border-fuchsia-500 bg-background shadow-sm'
+                        : 'border-border bg-background/70 hover:border-fuchsia-300',
+                    )}
+                  >
+                    <p className="font-semibold text-sm">{preset.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{preset.description}</p>
+                    <p className="text-[10px] text-fuchsia-600 mt-1">{preset.tags.join(' · ')}</p>
+                  </button>
+                ))}
+              </div>
+              {customize.makeupPresetId && (
+                <button type="button" className="mt-2 text-[11px] text-muted-foreground underline" onClick={() => setCustomize({ makeupPresetId: undefined })}>메이크업 선택 해제 (컨셉 기본)</button>
               )}
             </div>
             <div>
