@@ -12,6 +12,7 @@ export function normalizeEmail(email: string) {
 export function makeGenerationIdempotencyKey(input: {
   sessionId: string
   uploadId: string
+  uploadIds?: string[]
   conceptId: string
   resultCount: number
   size: string
@@ -32,11 +33,14 @@ export function makeGenerationIdempotencyKey(input: {
     .createHash('sha256')
     .update([input.positivePrompt || '', input.negativePrompt || ''].join('\n---negative---\n'))
     .digest('hex')
+  const uploadKey = Array.isArray(input.uploadIds) && input.uploadIds.length > 0
+    ? [...new Set(input.uploadIds)].join(',')
+    : input.uploadId
   return crypto
     .createHash('sha256')
     .update([
       input.sessionId,
-      input.uploadId,
+      uploadKey,
       input.conceptId,
       String(input.resultCount),
       input.size,

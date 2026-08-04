@@ -52,6 +52,35 @@ async function cleanupGeneratedRows(imageIds: string[]) {
 }
 
 
+async function resolveJobReferenceImagePaths(
+  job: { userId: string; upload: { id: string; fileUrl: string } | null },
+  uploadIds: string[] | undefined,
+): Promise<string[]> {
+  const orderedIds = Array.isArray(uploadIds)
+    ? uploadIds.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : []
+  const uniqueIds = [...new Set(orderedIds.length > 0 ? orderedIds : job.upload?.id ? [job.upload.id] : [])]
+  if (uniqueIds.length === 0) return []
+
+  const uploads = await db.upload.findMany({
+    where: {
+      id: { in: uniqueIds },
+      userId: job.userId,
+      deletedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  })
+  const byId = new Map(uploads.map((upload) => [upload.id, upload]))
+  const paths: string[] = []
+  for (const id of uniqueIds) {
+    const upload = byId.get(id) || (job.upload?.id === id ? job.upload : null)
+    if (!upload) continue
+    const localPath = uploadFileUrlToLocalPath(upload.fileUrl)
+    if (localPath) paths.push(localPath)
+  }
+  return paths
+}
+
 export async function processGenerationJob(jobId: string, workerId: string): Promise<GenerationJobProcessResult> {
   const job = await db.generationJob.findUnique({ where: { id: jobId }, include: { upload: true, user: true } })
   if (!job || job.status !== 'running') return { status: 'skipped' as const }
@@ -60,11 +89,15 @@ export async function processGenerationJob(jobId: string, workerId: string): Pro
     identityLockStrength?: number
     creativity?: number
     creditCost?: number
+    uploadIds?: string[]
   }
   const createdImageIds: string[] = []
   try {
-    const referenceImagePath = uploadFileUrlToLocalPath(job.upload.fileUrl)
-    if (!referenceImagePath) throw new Error('Upload reference image is unavailable')
+    const referenceImagePaths = await resolveJobReferenceImagePaths(
+      { userId: job.userId, upload: job.upload },
+      params.uploadIds,
+    )
+    if (referenceImagePaths.length === 0) throw new Error('Upload reference image is unavailable')
 
     const finalCount = Math.max(1, Math.min(profileForgeConfig.queue.maxResultCount, job.resultCount || 1))
     let successCount = 0
@@ -78,7 +111,7 @@ export async function processGenerationJob(jobId: string, workerId: string): Pro
           index: idx,
           prompt: job.positivePrompt,
           negativePrompt: job.negativePrompt,
-          referenceImagePath,
+          referenceImagePaths,
           outputSize: params.size || '1024x1024',
         })
         const imageId = crypto.randomBytes(8).toString('hex')

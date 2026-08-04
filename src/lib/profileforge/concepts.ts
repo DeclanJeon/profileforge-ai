@@ -54,7 +54,7 @@ export interface Concept {
 }
 
 const IDENTITY_LOCK =
-  'Use the uploaded image as the only face and identity reference. Preserve the same person, facial structure, age range, skin tone, hairline, and distinctive features while'
+  'Use the uploaded reference image(s) as the face and identity source. When multiple photos are attached, treat them as multi-angle identity references of the same person and preserve consistent facial structure, age range, skin tone, hairline, and distinctive features while'
 
 const COMMON_TAIL =
   'Create a new profile image with clear eyes, natural skin texture, high-resolution realistic quality, and a composition suitable for the selected aspect ratio. Avoid watermark, text, logo, face distortion, over-retouching, and copying the source photo pose.'

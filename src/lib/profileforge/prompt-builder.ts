@@ -35,11 +35,11 @@ export const DEFAULT_NEGATIVE_PROMPT =
   'changed identity, different person, copied source pose, copied hand-under-chin pose, distorted face, over-smoothed skin, asymmetrical eyes, crossed eyes, duplicate face, extra limbs, blurry, low resolution, watermark, text, logo, bad anatomy, awkward crop, cropped forehead, cropped chin, extra fingers, deformed hands, malformed spellcasting hands, fused fingers, broken wrists, mismatched earrings, cartoonish skin, plastic skin, uncanny valley, copyrighted character, franchise logo, exact costume replica, recognizable mascot creature, school crest, team logo, club logo, national team logo, celebrity likeness, trademark symbol'
 
 const ID_LOCK_LEVELS: Record<string, string> = {
-  low: 'Use the uploaded image as a loose identity reference while allowing creative transformation.',
+  low: 'Use the uploaded reference images as a loose identity guide while allowing creative transformation. All attached photos show the same person from different angles or poses.',
   medium:
-    'Preserve the same person: facial structure, age range, skin tone, hairline, glasses if present, and distinctive facial features.',
+    'Preserve the same person across all attached reference photos: facial structure, age range, skin tone, hairline, glasses if present, and distinctive facial features. Fuse identity cues from multiple angles and poses.',
   high:
-    'Strong identity preservation: keep the person clearly recognizable while changing only styling, pose, wardrobe, background, and lighting.',
+    'Strong identity preservation from all attached reference photos: keep the person clearly recognizable by combining front, side, and expression cues while changing only styling, pose, wardrobe, background, and lighting.',
 }
 
 const CREATIVITY_HINTS: Record<string, string> = {
@@ -129,9 +129,9 @@ export function sanitizeCustomStyleNote(value: unknown): string | undefined {
 }
 
 const DIVERSITY_INSTRUCTION =
-  "Use the uploaded image only as the face and identity reference. Preserve the same person's facial structure, age range, skin tone, hairline, glasses if present, and distinctive features, but do not preserve the source photo's pose, expression, hand-under-chin gesture, monochrome tone, crop, clothing, background, or camera angle unless explicitly requested. Create a new photoshoot-like image with a distinct expression, pose, angle, framing, scene, wardrobe, and lighting that fits the selected concept."
+  "Use every uploaded image only as face and identity references of the same person. When multiple photos are attached, combine facial geometry cues across angles and poses for higher likeness accuracy. Preserve the same person's facial structure, age range, skin tone, hairline, glasses if present, and distinctive features, but do not preserve any source photo's pose, expression, hand-under-chin gesture, monochrome tone, crop, clothing, background, or camera angle unless explicitly requested. Create a new photoshoot-like image with a distinct expression, pose, angle, framing, scene, wardrobe, and lighting that fits the selected concept."
 const THUMBNAIL_MATCH_INSTRUCTION =
-  'The concept thumbnail shown in the product is the visual promise for this selection. Match that concept promise through the same kind of wardrobe silhouette, scene, camera framing, pose energy, lighting mood, and overall composition described below, while keeping only the uploaded face identity from the reference image.'
+  'The concept thumbnail shown in the product is the visual promise for this selection. Match that concept promise through the same kind of wardrobe silhouette, scene, camera framing, pose energy, lighting mood, and overall composition described below, while keeping only the uploaded face identity from the reference image(s).'
 
 const CONCEPT_DETAIL_PROMPTS: Record<string, string> = {
   'pro-corporate-navy':
@@ -317,8 +317,8 @@ export const buildPrompts = (
 
   const idStylePrefix =
     options.identityLockStrength >= 75
-      ? 'Use the uploaded image as the primary identity reference. '
-      : 'Use the uploaded image as the identity reference, with room for concept-driven styling. '
+      ? 'Use the uploaded reference image(s) as the primary identity source. If multiple photos are attached, treat them as multi-angle identity references of one person. '
+      : 'Use the uploaded reference image(s) as the identity source, with room for concept-driven styling. If multiple photos are attached, fuse identity cues across angles. '
 
   const aiLabelClause = options.aiLabel
     ? 'Include a small, subtle, natural-looking "AI" label or watermark only if it does not distract from the portrait. '

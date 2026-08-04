@@ -112,7 +112,7 @@ export function ConceptGallery() {
       <Card className="bg-muted/30 border-dashed">
         <CardContent className="py-3 flex items-center gap-3">
           <div className="flex -space-x-2">{uploads.slice(0, 3).map((u) => <img key={u.id} src={u.previewUrl} alt={u.fileName} className="w-8 h-8 rounded-full object-cover border-2 border-background" />)}</div>
-          <div className="text-xs"><p className="font-medium">업로드된 사진 {uploads.length}장</p><p className="text-muted-foreground">대표 사진을 기준으로 생성됩니다</p></div>
+          <div className="text-xs"><p className="font-medium">업로드된 사진 {uploads.length}장</p><p className="text-muted-foreground">{uploads.length > 1 ? '여러 각도의 얼굴을 함께 참고해 생성합니다' : '업로드한 얼굴을 기준으로 생성됩니다'}</p></div>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setStep('upload')}>변경</Button>
         </CardContent>
       </Card>

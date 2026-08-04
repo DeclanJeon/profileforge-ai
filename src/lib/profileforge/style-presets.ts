@@ -15,7 +15,7 @@ export const STYLE_MODES: StyleModeOption[] = [
   { id: 'makeover', label: '풀 메이크오버', shortLabel: '메이크오버', description: '패션과 헤어를 함께 바꾸고 카메라 구도까지 연출합니다.' },
 ]
 
-const baseStyleSeed = (name: string, style: string) => `Use the uploaded image as the only face and identity reference while creating a '${name}' styling portrait. ${style} Preserve recognizable identity, natural skin texture, and realistic photography.`
+const baseStyleSeed = (name: string, style: string) => `Use the uploaded reference image(s) as the face and identity source while creating a '${name}' styling portrait. When multiple photos are attached, treat them as multi-angle identity references of the same person. ${style} Preserve recognizable identity, natural skin texture, and realistic photography.`
 
 export const BASE_STYLE_CONCEPTS: Record<Exclude<StyleMode, 'profile'>, Concept> = {
   fashion: { id: 'style-fashion', category: 'Professional', name: 'Fashion Try-On', description: '얼굴과 헤어를 유지하면서 의상만 분명하게 바꾸는 패션 스타일링', useCase: '패션 시뮬레이션, 프로필 스타일링', riskLevel: 'safe', styleTags: ['패션 변경', '의상 중심', '정체성 보존'], outfit: 'selected fashion preset outfit', background: 'clean editorial studio or lifestyle background', lighting: 'realistic soft editorial lighting', expression: 'natural confident expression', defaultAspect: '4:5', composition: 'three-quarter', defaultCreativity: 35, thumbnailPrompt: 'AI fashion try-on portrait, realistic outfit change, no text, no watermark', promptSeed: baseStyleSeed('Fashion Try-On', 'Change only the outfit according to the selected preset.'), creditCost: 2 },

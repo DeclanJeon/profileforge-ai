@@ -208,6 +208,34 @@ async function deleteUploadAfterEmail(upload: { id: string; fileUrl: string; del
   }
 }
 
+async function deleteUploadsAfterEmail(
+  primaryUpload: { id: string; fileUrl: string; deletedAt?: Date | null } | null | undefined,
+  uploadIds: string[] | undefined,
+) {
+  const ids = [...new Set([
+    ...(Array.isArray(uploadIds) ? uploadIds.filter((id): id is string => typeof id === 'string' && id.length > 0) : []),
+    ...(primaryUpload?.id ? [primaryUpload.id] : []),
+  ])]
+  if (ids.length === 0) return
+
+  const uploads = await db.upload.findMany({
+    where: { id: { in: ids }, deletedAt: null },
+  })
+  const byId = new Map(uploads.map((upload) => [upload.id, upload]))
+  if (primaryUpload?.id && !byId.has(primaryUpload.id) && primaryUpload.fileUrl) {
+    byId.set(primaryUpload.id, {
+      id: primaryUpload.id,
+      fileUrl: primaryUpload.fileUrl,
+      deletedAt: primaryUpload.deletedAt ?? null,
+    } as typeof uploads[number])
+  }
+
+  for (const id of ids) {
+    const upload = byId.get(id)
+    if (upload) await deleteUploadAfterEmail(upload)
+  }
+}
+
 function completionEmailHtml(input: { conceptName: string; attachmentCount: number }) {
   const conceptName = escapeHtml(input.conceptName)
   const attachmentLabel = input.attachmentCount > 1 ? `${input.attachmentCount}장` : '1장'
@@ -362,7 +390,14 @@ export async function sendPendingEmails(limit = 10, jobId?: string) {
         },
       })
       await deleteImagesAfterEmail(delivery.jobId, delivery.job.images)
-      await deleteUploadAfterEmail(delivery.job.upload)
+      const jobParams = (() => {
+        try {
+          return JSON.parse(delivery.job.paramsJson || '{}') as { uploadIds?: string[] }
+        } catch {
+          return {} as { uploadIds?: string[] }
+        }
+      })()
+      await deleteUploadsAfterEmail(delivery.job.upload, jobParams.uploadIds)
       sent += 1
     } catch (error) {
       await db.emailDelivery.update({

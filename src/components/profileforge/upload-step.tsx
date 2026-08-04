@@ -174,8 +174,12 @@ export function UploadStep() {
   )
 
   const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
+  const readyCount = uploads.filter((u) => Boolean(u.serverId)).length
   const canProceed =
-    uploads.length > 0 && consentAgreed && uploads.some((u) => (u.qualityScore ?? 50) >= 30)
+    uploads.length > 0 &&
+    readyCount === uploads.length &&
+    consentAgreed &&
+    uploads.some((u) => (u.qualityScore ?? 50) >= 30)
   if (status !== 'authenticated') {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-4">
@@ -196,7 +200,7 @@ export function UploadStep() {
       <div>
         <h2 className="text-2xl md:text-3xl font-bold">얼굴 사진 업로드</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          얼굴이 잘 보이는 정면 사진 1~5장을 업로드하세요. JPG, PNG, WebP · 파일당 20MB 이하.
+          같은 사람의 정면·측면·다른 표정 사진을 여러 장 올릴수록 얼굴 재현이 더 정확해집니다. 1~5장 · JPG/PNG/WebP · 파일당 20MB 이하.
         </p>
       </div>
 
@@ -394,10 +398,14 @@ export function UploadStep() {
               <span>사진을 업로드해주세요</span>
             ) : !consentAgreed ? (
               <span className="text-amber-600">동의 확인이 필요합니다</span>
+            ) : readyCount !== uploads.length ? (
+              <span className="text-amber-600">서버 업로드가 끝날 때까지 기다려주세요 ({readyCount}/{uploads.length})</span>
             ) : (
               <span className="flex items-center gap-1 text-emerald-600">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                다음 단계로 진행 가능
+                {uploads.length > 1
+                  ? `${uploads.length}장 얼굴 참조로 다음 단계 진행 가능`
+                  : '다음 단계로 진행 가능'}
               </span>
             )}
           </div>

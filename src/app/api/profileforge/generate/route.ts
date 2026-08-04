@@ -19,6 +19,7 @@ interface GenerateRequest {
   sessionId: string
   email?: string
   uploadId?: string
+  uploadIds?: string[]
   conceptId: string
   aspectRatio?: string
   size?: string
@@ -41,6 +42,29 @@ const ACTIVE_JOB_STATUSES = ['pending', 'queued', 'running']
 
 type SupportedAspect = (typeof SUPPORTED_ASPECTS)[number]
 type SupportedSkinRetouch = (typeof SUPPORTED_SKIN_RETOUCH)[number]
+const MAX_REFERENCE_UPLOADS = 5
+
+function normalizeUploadIds(body: GenerateRequest): string[] {
+  const fromList = Array.isArray(body.uploadIds)
+    ? body.uploadIds.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    : []
+  const merged = fromList.length > 0
+    ? fromList
+    : typeof body.uploadId === 'string' && body.uploadId.trim()
+      ? [body.uploadId]
+      : []
+
+  const unique: string[] = []
+  const seen = new Set<string>()
+  for (const id of merged) {
+    const trimmed = id.trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    unique.push(trimmed)
+    if (unique.length >= MAX_REFERENCE_UPLOADS) break
+  }
+  return unique
+}
 
 function safeSize(size: string | undefined) {
   return size && SUPPORTED_SIZES.includes(size) ? size : '1024x1024'
@@ -226,9 +250,10 @@ export async function POST(req: NextRequest) {
     if (!authEmail) {
       return NextResponse.json({ error: 'Google 로그인이 필요합니다.' }, { status: 401 })
     }
-    const { sessionId, uploadId, conceptId } = body
+    const { sessionId, conceptId } = body
+    const requestedUploadIds = normalizeUploadIds(body)
 
-    if (!sessionId || !conceptId || !uploadId) {
+    if (!sessionId || !conceptId || requestedUploadIds.length === 0) {
       return NextResponse.json({ error: '업로드 이미지와 컨셉 선택이 필요합니다.' }, { status: 400 })
     }
 
@@ -301,26 +326,40 @@ export async function POST(req: NextRequest) {
       create: { email: normalizedEmail, name: session?.user?.name || normalizedEmail, consentVersion: 'v1' },
     })
 
-    const upload = await db.upload.findFirst({
+    const uploads = await db.upload.findMany({
       where: {
-        id: uploadId,
+        id: { in: requestedUploadIds },
         userId: user.id,
         expiresAt: { gt: new Date() },
         deletedAt: null,
       },
     })
-    if (!upload) {
+    const uploadsById = new Map(uploads.map((upload) => [upload.id, upload]))
+    const orderedUploads = requestedUploadIds
+      .map((id) => uploadsById.get(id))
+      .filter((upload): upload is NonNullable<typeof upload> => Boolean(upload))
+
+    if (orderedUploads.length === 0) {
       return NextResponse.json({ error: '업로드 원본 이미지를 확인할 수 없습니다. 다시 업로드해주세요.' }, { status: 400 })
     }
+    if (orderedUploads.length !== requestedUploadIds.length) {
+      return NextResponse.json({ error: '일부 업로드 이미지를 확인할 수 없습니다. 다시 업로드해주세요.' }, { status: 400 })
+    }
 
-    const referenceImagePath = uploadFileUrlToLocalPath(upload.fileUrl)
-    if (!referenceImagePath) {
+    const referenceImagePaths = orderedUploads
+      .map((upload) => uploadFileUrlToLocalPath(upload.fileUrl))
+      .filter((filePath): filePath is string => Boolean(filePath))
+    if (referenceImagePaths.length !== orderedUploads.length) {
       return NextResponse.json({ error: '업로드 원본 이미지를 찾을 수 없습니다. 다시 업로드해주세요.' }, { status: 400 })
     }
 
+    const primaryUpload = orderedUploads[0]
+    const uploadIds = orderedUploads.map((upload) => upload.id)
+
     const idempotencyKey = makeGenerationIdempotencyKey({
       sessionId,
-      uploadId: upload.id,
+      uploadId: primaryUpload.id,
+      uploadIds,
       conceptId,
       resultCount: safeResultCount,
       size: safeSizeStr,
@@ -368,7 +407,7 @@ export async function POST(req: NextRequest) {
       const job = await tx.generationJob.create({
         data: {
           userId: user.id,
-          uploadId: upload.id,
+          uploadId: primaryUpload.id,
           conceptId,
           conceptName: concept.name,
           paramsJson: JSON.stringify({
@@ -385,7 +424,9 @@ export async function POST(req: NextRequest) {
             resultCount: safeResultCount,
             size: safeSizeStr,
             creditCost: concept.creditCost,
-            promptVersion: 'server-v2',
+            promptVersion: 'server-v3-multi-ref',
+            uploadIds,
+            referenceCount: uploadIds.length,
           }),
           positivePrompt: builtPrompts.positive,
           negativePrompt: builtPrompts.negative,

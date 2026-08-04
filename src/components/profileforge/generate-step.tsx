@@ -57,7 +57,12 @@ export function GenerateStep() {
   const [emailStatus, setEmailStatus] = useState<string | null>(null)
   const startedRef = useRef(false)
 
-  const primaryUpload = uploads.find((u) => u.id === selectedUploadId)
+  const readyUploads = uploads.filter((u) => Boolean(u.serverId))
+  const primaryUpload =
+    readyUploads.find((u) => u.id === selectedUploadId) || readyUploads[0]
+  const orderedUploads = primaryUpload
+    ? [primaryUpload, ...readyUploads.filter((u) => u.id !== primaryUpload.id)]
+    : readyUploads
   const built = selectedConcept ? buildPrompts(selectedConcept, customize) : null
   const estimatedTime = selectedConcept ? estimateGenerationTime(selectedConcept, customize.resultCount) : null
 
@@ -79,8 +84,8 @@ export function GenerateStep() {
       setStage('failed')
       return
     }
-    if (!selectedConcept || !primaryUpload || !built) {
-      setErrorMsg('필수 정보가 누락되었습니다.')
+    if (!selectedConcept || orderedUploads.length === 0 || !built) {
+      setErrorMsg('필수 정보가 누락되었습니다. 얼굴 사진을 다시 업로드해주세요.')
       setStage('failed')
       return
     }
@@ -99,8 +104,9 @@ export function GenerateStep() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          uploadId: primaryUpload.serverId,
-          uploadUrl: primaryUpload.serverUrl || primaryUpload.previewUrl,
+          uploadId: orderedUploads[0].serverId,
+          uploadIds: orderedUploads.map((u) => u.serverId).filter((id): id is string => Boolean(id)),
+          uploadUrl: orderedUploads[0].serverUrl || orderedUploads[0].previewUrl,
           conceptId: selectedConcept.id,
           conceptName: selectedConcept.name,
           positivePrompt: built.positive,
@@ -338,6 +344,7 @@ export function GenerateStep() {
             <Row label="창의성" value={`${customize.creativity}/100`} />
             <Row label="정체성 보존" value={`${customize.identityLockStrength}/100`} />
             <Row label="피부 보정" value={customize.skinRetouch} />
+            <Row label="참조 사진" value={`${orderedUploads.length}장`} />
             {emailStatus && <Row label="이메일 상태" value={emailStatusLabel(emailStatus)} />}
           </CardContent>
         </Card>

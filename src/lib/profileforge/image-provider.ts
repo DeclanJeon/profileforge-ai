@@ -14,7 +14,9 @@ export interface ImageGenerationInput {
   index: number
   prompt: string
   negativePrompt: string
-  referenceImagePath: string
+  /** @deprecated prefer referenceImagePaths */
+  referenceImagePath?: string
+  referenceImagePaths?: string[]
   outputSize: string
 }
 
@@ -186,17 +188,21 @@ async function runRemoteShell(host: string, script: string, timeoutMs: number) {
 function buildCodexImagenCommand(opts: {
   bin: string
   promptPath: string
-  inputPath: string
+  inputPaths: string[]
   outputPath: string
   model: string
   timeoutSeconds: number
 }) {
+  const imageFlags = opts.inputPaths.flatMap((inputPath) => [
+    '--image',
+    shellQuote(inputPath),
+  ])
+
   return [
     opts.bin,
     '--prompt-file',
     shellQuote(opts.promptPath),
-    '--image',
-    shellQuote(opts.inputPath),
+    ...imageFlags,
     '--image-detail',
     'high',
     '--output',
@@ -214,7 +220,7 @@ async function runCodexImagen(opts: {
   host: string
   bin: string
   remotePrompt: string
-  remoteInput: string
+  remoteInputs: string[]
   remoteOutput: string
   timeoutSeconds: number
   model: string
@@ -223,13 +229,22 @@ async function runCodexImagen(opts: {
   const command = buildCodexImagenCommand({
     bin: opts.bin,
     promptPath: opts.remotePrompt,
-    inputPath: opts.remoteInput,
+    inputPaths: opts.remoteInputs,
     outputPath: opts.remoteOutput,
     model: opts.model,
     timeoutSeconds: opts.timeoutSeconds,
   })
 
   return runRemoteShell(opts.host, command, opts.timeoutMs + 10_000)
+}
+
+function normalizeReferenceImagePaths(input: ImageGenerationInput): string[] {
+  const fromList = Array.isArray(input.referenceImagePaths)
+    ? input.referenceImagePaths.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : []
+  if (fromList.length > 0) return [...new Set(fromList)]
+  if (input.referenceImagePath) return [input.referenceImagePath]
+  return []
 }
 
 export async function generateProfileImage(
@@ -244,24 +259,35 @@ export async function generateProfileImage(
       || DEFAULT_TIMEOUT_SECONDS,
   )
   const timeoutMs = Math.max(30, timeoutSeconds) * 1000
+  const referenceImagePaths = normalizeReferenceImagePaths(input)
+  if (referenceImagePaths.length === 0) {
+    throw new Error('Upload reference image is unavailable')
+  }
 
-  await fs.access(input.referenceImagePath)
+  await Promise.all(referenceImagePaths.map((referencePath) => fs.access(referencePath)))
   await fs.mkdir(generatedImageDir(), { recursive: true })
 
   const runId = `${input.jobId}-${input.index}-${crypto.randomBytes(4).toString('hex')}`
   const remoteDir = `/tmp/profileforge-codex-imagen/${runId}`
-  const remoteInput = `${remoteDir}/reference${path.extname(input.referenceImagePath) || '.png'}`
+  const remoteInputs = referenceImagePaths.map((referencePath, index) => {
+    const ext = path.extname(referencePath) || '.png'
+    return `${remoteDir}/reference-${String(index + 1).padStart(2, '0')}${ext}`
+  })
   const remotePrompt = `${remoteDir}/prompt.txt`
   const remoteOutput = `${remoteDir}/output.png`
   const localOutputName = `pf_${input.jobId}_${input.index}_${crypto.randomBytes(6).toString('hex')}.png`
   const localOutputPath = path.join(generatedImageDir(), localOutputName)
+
+  const identityInstruction = referenceImagePaths.length > 1
+    ? `Use all ${referenceImagePaths.length} attached images as identity references of the same person. Fuse facial structure cues across angles and poses (front, three-quarter, side, expression variants) while preserving one consistent identity: face shape, age range, skin tone, hairline, glasses if present, and distinctive features. Do not blend multiple people and do not copy any source pose, crop, wardrobe, or background unless explicitly requested.`
+    : 'Use the attached image as the only identity reference. Preserve the same person, facial structure, age range, skin tone, hairline, and distinctive features.'
 
   const fullPrompt = [
     input.prompt,
     '',
     `Negative prompt: ${input.negativePrompt}`,
     `Output size target: ${input.outputSize}.`,
-    'Use the attached image as the only identity reference. Preserve the same person, facial structure, age range, skin tone, hairline, and distinctive features.',
+    identityInstruction,
   ].join('\n')
 
   try {
@@ -277,7 +303,11 @@ export async function generateProfileImage(
     await fs.writeFile(promptTmp, fullPrompt, 'utf8')
 
     try {
-      await copyLocalToRemote(host, input.referenceImagePath, remoteInput, timeoutMs)
+      await Promise.all(
+        referenceImagePaths.map((localPath, index) =>
+          copyLocalToRemote(host, localPath, remoteInputs[index], timeoutMs),
+        ),
+      )
       await copyLocalToRemote(host, promptTmp, remotePrompt, timeoutMs)
     } finally {
       await fs.rm(promptTmp, { force: true })
@@ -287,7 +317,7 @@ export async function generateProfileImage(
       host,
       bin,
       remotePrompt,
-      remoteInput,
+      remoteInputs,
       remoteOutput,
       timeoutSeconds,
       model,
