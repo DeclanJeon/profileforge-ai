@@ -16,6 +16,8 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+const ADSENSE_CLIENT = 'ca-pub-6181820059897519'
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: 'ProfileForge AI',
@@ -76,6 +78,7 @@ export const metadata: Metadata = {
     'geo.region': 'KR',
     'geo.placename': 'South Korea',
     'ai:purpose': 'AI profile photo generation with identity-preserving prompts and temporary storage',
+    'google-adsense-account': ADSENSE_CLIENT,
   },
 }
 
@@ -131,6 +134,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
